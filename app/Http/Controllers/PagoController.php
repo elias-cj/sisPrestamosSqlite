@@ -9,6 +9,7 @@ use App\Models\Prestamo;
 use App\Models\Cliente;
 use App\Models\Socio;
 use App\Models\Ganancia;
+use App\Models\RutaDiaria;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -127,6 +128,16 @@ class PagoController extends Controller
                 
                 $pago->load(['cuota.prestamo.cliente', 'usuario']);
                 $pagoData = $pago;
+
+                // Actualizar automáticamente el estado en la Ruta de Cobro si existe
+                $hoy = now()->format('Y-m-d');
+                $ruta = RutaDiaria::whereDate('fecha', $hoy)
+                    ->where('user_id', Auth::id())
+                    ->first();
+                
+                if ($ruta) {
+                    $ruta->marcarComoPagado($cuota->prestamo->cliente_id);
+                }
             });
 
             return back()->with('paymentReceipt', [

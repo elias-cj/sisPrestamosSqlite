@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Permission;
-use App\Models\Role;
+use App\Models\Permiso;
+use App\Models\Rol;
 
 class PermissionSeeder extends Seeder
 {
@@ -46,6 +46,9 @@ class PermissionSeeder extends Seeder
             ['nombre' => 'registrar_pago', 'modulo' => 'pagos'],
             ['nombre' => 'anular_pago', 'modulo' => 'pagos'],
             
+            // Rutas de Cobro
+            ['nombre' => 'ver_rutas', 'modulo' => 'rutas'],
+
             // Gastos
             ['nombre' => 'ver_gastos', 'modulo' => 'gastos'],
             ['nombre' => 'registrar_gasto', 'modulo' => 'gastos'],
@@ -59,28 +62,28 @@ class PermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $perm) {
-            Permission::firstOrCreate($perm);
+            Permiso::firstOrCreate($perm);
         }
 
         // Asignar TODO al Admin
-        $adminRole = Role::where('nombre', 'Administrador')->first();
+        $adminRole = Rol::where('nombre', 'Administrador')->first();
         if ($adminRole) {
-            $allPermissions = Permission::all();
+            $allPermissions = Permiso::all();
             $adminRole->permissions()->sync($allPermissions);
         }
 
         // Asignar permisos al Cobrador
-        $cobradorRole = Role::where('nombre', 'Cobrador')->first();
+        $cobradorRole = Rol::where('nombre', 'Cobrador')->first();
         if ($cobradorRole) {
-            $cobradorPermissions = Permission::whereIn('modulo', ['clientes', 'prestamos', 'caja', 'pagos', 'gastos'])->get();
+            $cobradorPermissions = Permiso::whereIn('modulo', ['clientes', 'prestamos', 'caja', 'pagos', 'gastos', 'rutas'])->get();
             $cobradorRole->permissions()->sync($cobradorPermissions);
         }
         
         // Asignar permisos al Socio (Limitado)
-        $socioRole = Role::where('nombre', 'Socio')->first();
+        $socioRole = Rol::where('nombre', 'Socio')->first();
         if ($socioRole) {
             // Socios can see reports and loans mainly
-             $socioPermissions = Permission::whereIn('nombre', ['ver_reportes', 'ver_prestamos', 'ver_socios'])->get();
+             $socioPermissions = Permiso::whereIn('nombre', ['ver_reportes', 'ver_prestamos', 'ver_socios'])->get();
              $socioRole->permissions()->sync($socioPermissions);
         }
     }

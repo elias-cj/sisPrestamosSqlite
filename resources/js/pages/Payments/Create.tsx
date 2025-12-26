@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import { Banknote, Search, User, Calendar, FileText, CheckCircle, AlertCircle, X, Printer } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Cobros', href: '/payments' },
@@ -87,6 +87,19 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
             setSelectedLoan(null);
         }
     };
+
+    // Auto-select client from URL parameter (from Rutas)
+    useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const clienteId = params.get('cliente_id');
+
+        if (clienteId && clients.length > 0) {
+            const cliente = clients.find(c => c.id === parseInt(clienteId));
+            if (cliente) {
+                handleClientSelect(cliente);
+            }
+        }
+    });
 
     const openPaymentModal = (quota: Quota) => {
         setTargetQuota(quota);

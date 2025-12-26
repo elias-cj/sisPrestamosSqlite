@@ -45,6 +45,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pagos
     Route::resource('payments', \App\Http\Controllers\PagoController::class)->middleware('permission:registrar_pago');
     
+    // Rutas de Cobro
+    Route::get('rutas', [\App\Http\Controllers\RutaController::class, 'index'])->middleware('permission:registrar_pago')->name('rutas.index');
+    Route::post('rutas', [\App\Http\Controllers\RutaController::class, 'store'])->middleware('permission:registrar_pago')->name('rutas.store');
+    Route::patch('rutas/bloquear', [\App\Http\Controllers\RutaController::class, 'toggleBloqueo'])->middleware('permission:registrar_pago')->name('rutas.toggle-bloqueo');
+    Route::patch('rutas/{clienteId}/estado', [\App\Http\Controllers\RutaController::class, 'updateEstado'])->middleware('permission:registrar_pago')->name('rutas.update-estado');
+    
     // Monedas
     Route::resource('currencies', \App\Http\Controllers\MonedaController::class)->middleware('permission:ver_configuracion');
     

@@ -9,9 +9,9 @@ use App\Models\Socio;
 use App\Models\Moneda;
 use App\Models\Cuota;
 use App\Models\Pago;
-use App\Models\User;
+use App\Models\Usuario;
 use App\Models\Caja;
-use App\Services\LoanService;
+use App\Services\PrestamoService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -19,11 +19,11 @@ class LoanSeeder extends Seeder
 {
     public function run(): void
     {
-        $loanService = app(LoanService::class);
+        $loanService = app(PrestamoService::class);
         $clientes = Cliente::all();
         $socios = Socio::all();
         $moneda = Moneda::first();
-        $user = User::first();
+        $user = Usuario::first();
 
         if ($clientes->isEmpty() || $socios->isEmpty() || !$moneda || !$user) {
             return;

@@ -79,6 +79,12 @@ const mainNavItems: NavItem[] = [
         permission: 'registrar_pago',
     },
     {
+        title: 'Rutas',
+        href: '/rutas',
+        icon: Folder,
+        permission: 'registrar_pago',
+    },
+    {
         title: 'Gastos',
         href: '/expenses',
         icon: Receipt,
