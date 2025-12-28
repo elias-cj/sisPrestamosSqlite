@@ -25,6 +25,10 @@ class PanelController extends Controller
         $fechaFin = $now->copy()->endOfMonth();
 
         switch ($period) {
+            case 'daily':
+                $fechaInicio = $now->copy()->startOfDay();
+                $fechaFin = $now->copy()->endOfDay();
+                break;
             case 'weekly':
                 $fechaInicio = $now->copy()->startOfWeek();
                 $fechaFin = $now->copy()->endOfWeek();
@@ -58,9 +62,19 @@ class PanelController extends Controller
         $capitalMesPasado = Prestamo::whereBetween('created_at', [$inicioMesPasado, $finMesPasado])->sum('monto');
         $procentajeCrecimiento = $capitalMesPasado > 0 ? (($capitalPrestado - $capitalMesPasado) / $capitalMesPasado) * 100 : 0;
 
-        $totalCobrado = Pago::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto_pagado');
+        $totalPagos = Pago::whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->with('cuota.prestamo')
+            ->get();
+
+        $interesRecuperado = $totalPagos->sum(function($pago) {
+            $prestamo = $pago->cuota->prestamo;
+            $totalPrestamo = $prestamo->monto + $prestamo->interes;
+            $ratioInteres = $totalPrestamo > 0 ? ($prestamo->interes / $totalPrestamo) : 0;
+            return ($pago->monto_pagado * $ratioInteres) + $pago->mora;
+        });
+
         $totalGastos = Gasto::whereBetween('fecha', [$fechaInicio, $fechaFin])->sum('monto');
-        $gananciasNetas = $totalCobrado - $totalGastos; 
+        $gananciasNetas = $interesRecuperado - $totalGastos; 
 
         $nuevosPrestamos = Prestamo::whereBetween('created_at', [$fechaInicio, $fechaFin])->count();
         $sociosActivos = Socio::where('estado', 'activo')->count();

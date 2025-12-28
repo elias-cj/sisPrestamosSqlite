@@ -14,11 +14,17 @@ class Cliente extends Model
         'documento',
         'telefono',
         'direccion',
-        'estado_crediticio',
+        'zona',
+        'estado'
     ];
 
     public function prestamos()
     {
         return $this->hasMany(Prestamo::class);
+    }
+
+    public function ubicaciones()
+    {
+        return $this->hasMany(ClienteUbicacion::class);
     }
 }

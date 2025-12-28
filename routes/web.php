@@ -46,10 +46,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('payments', \App\Http\Controllers\PagoController::class)->middleware('permission:registrar_pago');
     
     // Rutas de Cobro
-    Route::get('rutas', [\App\Http\Controllers\RutaController::class, 'index'])->middleware('permission:registrar_pago')->name('rutas.index');
-    Route::post('rutas', [\App\Http\Controllers\RutaController::class, 'store'])->middleware('permission:registrar_pago')->name('rutas.store');
-    Route::patch('rutas/bloquear', [\App\Http\Controllers\RutaController::class, 'toggleBloqueo'])->middleware('permission:registrar_pago')->name('rutas.toggle-bloqueo');
+    Route::get('rutas', [\App\Http\Controllers\RutaController::class, 'index'])->middleware('permission:ver_prestamos')->name('rutas.index');
+    Route::post('rutas', [\App\Http\Controllers\RutaController::class, 'store'])->middleware('permission:ruta.administrar')->name('rutas.store');
+    Route::patch('rutas/bloquear', [\App\Http\Controllers\RutaController::class, 'toggleBloqueo'])->middleware('permission:ruta.administrar')->name('rutas.toggle-bloqueo');
     Route::patch('rutas/{clienteId}/estado', [\App\Http\Controllers\RutaController::class, 'updateEstado'])->middleware('permission:registrar_pago')->name('rutas.update-estado');
+    Route::post('rutas/{clienteId}/ubicacion', [\App\Http\Controllers\RutaController::class, 'storeUbicacion'])->middleware('permission:ruta.gps.capturar')->name('rutas.store-ubicacion');
+    Route::delete('rutas/ubicacion/{ubicacionId}', [\App\Http\Controllers\RutaController::class, 'destroyUbicacion'])->middleware('permission:ruta.gps.eliminar')->name('rutas.destroy-ubicacion');
     
     // Monedas
     Route::resource('currencies', \App\Http\Controllers\MonedaController::class)->middleware('permission:ver_configuracion');

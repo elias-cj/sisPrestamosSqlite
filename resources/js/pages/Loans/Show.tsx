@@ -241,7 +241,7 @@ export default function Show({ loan }: { loan: any }) {
                         </div>
                         <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Condiciones</p>
-                            <p className="font-medium text-gray-900 dark:text-white">{loan.interes}% Interés</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{loan.interes_porcentaje}% Interés</p>
                             <p className="text-sm text-gray-500">{loan.numero_cuotas} Cuotas {loan.tipo_pago}es</p>
                         </div>
                         <div className="no-print col-span-1 md:col-span-2 lg:col-span-1">

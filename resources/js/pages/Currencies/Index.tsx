@@ -12,7 +12,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Index({ currencies }: { currencies: any[] }) {
+export default function Index({ currencies }: { currencies: { data: any[] } }) {
 
     // Simple delete confirm
     const handleDelete = (id: number) => {
@@ -54,8 +54,8 @@ export default function Index({ currencies }: { currencies: any[] }) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-zinc-700">
-                                {currencies.length > 0 ? (
-                                    currencies.map((currency) => (
+                                {currencies.data.length > 0 ? (
+                                    currencies.data.map((currency: any) => (
                                         <tr key={currency.id} className="hover:bg-gray-50 dark:hover:bg-zinc-700/50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
                                                 {currency.nombre}
@@ -64,13 +64,11 @@ export default function Index({ currencies }: { currencies: any[] }) {
                                             <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">
                                                 {currency.simbolo}
                                             </td>
-                                            <td className="px-6 py-4 font-mono">
-                                                {parseFloat(currency.tipo_cambio).toFixed(4)}
-                                            </td>
+                                            <td className="px-6 py-4">{Number(currency.tipo_cambio)}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold ${currency.estado === 'activo'
-                                                        ? 'bg-green-100 text-green-700 border border-green-200'
-                                                        : 'bg-red-100 text-red-700 border border-red-200'
+                                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                                    : 'bg-red-100 text-red-700 border border-red-200'
                                                     }`}>
                                                     {currency.estado.toUpperCase()}
                                                 </span>

@@ -113,6 +113,7 @@ export default function Dashboard({
                             onChange={handlePeriodChange}
                             className="bg-white dark:bg-zinc-800 border-none rounded-xl text-xs font-bold text-gray-500 shadow-sm focus:ring-2 focus:ring-indigo-500 h-9 px-3 w-full sm:w-auto"
                         >
+                            <option value="daily">Diario</option>
                             <option value="weekly">Esta Semana</option>
                             <option value="monthly">Este Mes</option>
                             <option value="quarterly">Trimestre</option>
@@ -149,21 +150,21 @@ export default function Dashboard({
                 {/* --- KPI CARDS COMPACTAS (RESPONSIVE) --- */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                     <CompactStatCard
-                        title="Prestado"
+                        title="Capital Prestado"
                         value={formatCurrency(stats.capital_prestado)}
                         icon={<CreditCard className="w-4 h-4 text-indigo-600" />}
-                        subtitle={`${stats.crecimiento >= 0 ? '+' : ''}${stats.crecimiento}% vs anterior`}
+                        subtitle={`${stats.crecimiento >= 0 ? '+' : ''}${stats.crecimiento}% cap. sacado de caja`}
                         colorClass={{ bg: 'bg-indigo-50' }}
                     />
                     <CompactStatCard
                         title="Cobrado"
                         value={formatCurrency(stats.ganancias_netas + (evolutionData.reduce((sum: number, d: any) => sum + d.monto_cobrado, 0)))}
                         icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
-                        subtitle="Ingresos del período"
+                        subtitle="total cap. prestado + total interes recuperado"
                         colorClass={{ bg: 'bg-emerald-50' }}
                     />
                     <CompactStatCard
-                        title="En Calle"
+                        title="Prestado En Calle"
                         value={formatCurrency(stats.capital_en_calle)}
                         icon={<Activity className="w-4 h-4 text-amber-600" />}
                         subtitle="Capital comprometido"
@@ -173,7 +174,7 @@ export default function Dashboard({
                         title="Utilidad"
                         value={formatCurrency(stats.ganancias_netas)}
                         icon={<TrendingUp className="w-4 h-4 text-purple-600" />}
-                        subtitle="Ingresos - Gastos"
+                        subtitle="(cap. recuperado + interes) - gastos"
                         colorClass={{ bg: 'bg-purple-50' }}
                     />
                     <CompactStatCard

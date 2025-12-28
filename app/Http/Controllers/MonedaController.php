@@ -35,36 +35,36 @@ class MonedaController extends Controller
         return redirect()->route('currencies.index')->with('success', 'Moneda creada correctamente.');
     }
 
-    public function edit(Moneda $moneda)
+    public function edit(Moneda $currency)
     {
         return Inertia::render('Currencies/Edit', [
-            'currency' => $moneda
+            'currency' => $currency
         ]);
     }
 
-    public function update(Request $request, Moneda $moneda)
+    public function update(Request $request, Moneda $currency)
     {
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'simbolo' => 'required|string|max:10',
-            'codigo' => 'required|string|max:10|unique:monedas,codigo,' . $moneda->id,
+            'codigo' => 'required|string|max:10|unique:monedas,codigo,' . $currency->id,
             'tipo_cambio' => 'required|numeric|min:0',
             'estado' => 'required|in:activo,inactivo',
         ]);
 
-        $moneda->update($validated);
+        $currency->update($validated);
 
         return redirect()->route('currencies.index')->with('success', 'Moneda actualizada correctamente.');
     }
 
-    public function destroy(Moneda $moneda)
+    public function destroy(Moneda $currency)
     {
         // Check for usage in loans before deletion
-        if ($moneda->prestamos()->exists()) {
+        if ($currency->prestamos()->exists()) {
             return back()->with('error', 'No se puede eliminar una moneda que tiene préstamos asociados. Desactívela en su lugar.');
         }
 
-        $moneda->delete();
+        $currency->delete();
 
         return redirect()->route('currencies.index')->with('success', 'Moneda eliminada correctamente.');
     }

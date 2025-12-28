@@ -44,7 +44,7 @@ trait LogsActivity
         }
 
         RegistroActividad::create([
-            'user_id' => Auth::id(),
+            'user_id' => Auth::id() ?? 1,
             'model_type' => get_class($this),
             'model_id' => $this->id,
             'action' => $action,
@@ -59,6 +59,24 @@ trait LogsActivity
     protected function getActivityDescription($action)
     {
         $name = class_basename($this);
-        return "El modelo {$name} fue {$action}";
+        $translatedAction = [
+            'created' => 'creó',
+            'updated' => 'actualizó',
+            'deleted' => 'eliminó'
+        ][$action] ?? $action;
+
+        $description = "Se {$translatedAction} el registro de {$name} (ID: {$this->id})";
+
+        if ($action === 'updated') {
+            $changedFields = array_keys($this->getDirty());
+            // Filter out timestamps
+            $changedFields = array_diff($changedFields, ['updated_at', 'created_at']);
+            
+            if (!empty($changedFields)) {
+                $description .= ". Campos modificados: " . implode(', ', $changedFields);
+            }
+        }
+
+        return $description;
     }
 }

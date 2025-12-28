@@ -1,10 +1,11 @@
-import { Clock, Check, AlertTriangle, Ban } from 'lucide-react';
+import { Clock, Check, AlertTriangle, Ban, Map as MapIcon, Home, Briefcase, Store, Trash2, MapPin, Loader2 } from 'lucide-react';
 
 interface ClienteRutaCardProps {
     cliente: {
         cliente_id: number;
         nombre: string;
         documento: string;
+        ubicaciones: any[];
         prestamo_id: number;
         monto_cobrar: number;
         cuotas_pendientes: number;
@@ -16,7 +17,10 @@ interface ClienteRutaCardProps {
     posicion: number;
     onCobrar: () => void;
     onCambiarEstado: (estado: string) => void;
+    onCapturarUbicacion: (tipo: string) => void;
+    onEliminarUbicacion: (id: number) => void;
     bloqueada: boolean;
+    permissions: string[];
 }
 
 export default function ClienteRutaCard({
@@ -24,12 +28,31 @@ export default function ClienteRutaCard({
     posicion,
     onCobrar,
     onCambiarEstado,
+    onCapturarUbicacion,
+    onEliminarUbicacion,
     bloqueada,
+    permissions = [],
 }: ClienteRutaCardProps) {
+    const canCapturar = permissions.includes('ruta.gps.capturar');
+    const canEliminar = permissions.includes('ruta.gps.eliminar');
+
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB' })
             .format(val)
             .replace('BOB', 'Bs');
+    };
+
+    const openMap = (lat: number, lng: number) => {
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+    };
+
+    const getUbicacionIcon = (tipo: string) => {
+        switch (tipo) {
+            case 'hogar': return <Home className="w-3.5 h-3.5" />;
+            case 'trabajo': return <Briefcase className="w-3.5 h-3.5" />;
+            case 'negocio': return <Store className="w-3.5 h-3.5" />;
+            default: return <MapPin className="w-3.5 h-3.5" />;
+        }
     };
 
     const getEstadoConfig = (estado: string) => {
@@ -39,7 +62,7 @@ export default function ClienteRutaCard({
                     bg: 'bg-emerald-50 dark:bg-emerald-900/20',
                     border: 'border-emerald-200 dark:border-emerald-800',
                     text: 'text-emerald-700 dark:text-emerald-400',
-                    icon: <Check className="w-4 h-4" />,
+                    icon: <Check className="w-3.5 h-3.5" />,
                     label: 'Pagó',
                 };
             case 'mas_tarde':
@@ -47,7 +70,7 @@ export default function ClienteRutaCard({
                     bg: 'bg-yellow-50 dark:bg-yellow-900/20',
                     border: 'border-yellow-200 dark:border-yellow-800',
                     text: 'text-yellow-700 dark:text-yellow-400',
-                    icon: <Clock className="w-4 h-4" />,
+                    icon: <Clock className="w-3.5 h-3.5" />,
                     label: 'Más tarde',
                 };
             case 'saltado':
@@ -55,7 +78,7 @@ export default function ClienteRutaCard({
                     bg: 'bg-gray-50 dark:bg-gray-900/20',
                     border: 'border-gray-200 dark:border-gray-700',
                     text: 'text-gray-500 dark:text-gray-400',
-                    icon: <Ban className="w-4 h-4" />,
+                    icon: <Ban className="w-3.5 h-3.5" />,
                     label: 'Saltado',
                 };
             default: // pendiente
@@ -63,13 +86,14 @@ export default function ClienteRutaCard({
                     bg: 'bg-orange-50 dark:bg-orange-900/20',
                     border: 'border-orange-200 dark:border-orange-800',
                     text: 'text-orange-700 dark:text-orange-400',
-                    icon: <AlertTriangle className="w-4 h-4" />,
+                    icon: <AlertTriangle className="w-3.5 h-3.5" />,
                     label: 'Pendiente',
                 };
         }
     };
 
     const config = getEstadoConfig(cliente.estado);
+    const estaPagado = cliente.estado === 'pagado';
 
     return (
         <div
@@ -111,42 +135,83 @@ export default function ClienteRutaCard({
                 </div>
 
                 {/* Derecha: Acciones (Miniaturizadas) */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center lg:gap-3 gap-1.5 flex-wrap">
+                    {/* Botones de GPS - 3 Iconos Simples */}
+                    <div className="flex gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg">
+                        {/* 1. Capturar */}
+                        {canCapturar && (
+                            <button
+                                onClick={() => onCapturarUbicacion('hogar')}
+                                className="w-7 h-7 flex items-center justify-center rounded-md transition-all hover:bg-indigo-100 text-indigo-600"
+                                title="Capturar Ubicación Actual"
+                            >
+                                <MapIcon className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        {/* 2. Ver Mapa (Icono de Maps) */}
+                        <button
+                            onClick={() => {
+                                const mainUb = cliente.ubicaciones?.[0];
+                                if (mainUb) openMap(mainUb.latitud, mainUb.longitud);
+                            }}
+                            disabled={!cliente.ubicaciones || cliente.ubicaciones.length === 0}
+                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.ubicaciones?.length > 0 ? 'hover:bg-emerald-100 text-emerald-600' : 'opacity-30 grayscale'}`}
+                            title="Ver en Google Maps"
+                        >
+                            <MapPin className="w-4 h-4" />
+                        </button>
+
+                        {/* 3. Eliminar */}
+                        {canEliminar && (
+                            <button
+                                onClick={() => {
+                                    const mainUb = cliente.ubicaciones?.[0];
+                                    if (mainUb) onEliminarUbicacion(mainUb.id);
+                                }}
+                                disabled={!cliente.ubicaciones || cliente.ubicaciones.length === 0}
+                                className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.ubicaciones?.length > 0 ? 'hover:bg-red-100 text-red-600' : 'opacity-30 grayscale'}`}
+                                title="Eliminar GPS"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Botones de Estado */}
                     <div className="flex gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg">
                         <button
                             onClick={() => onCambiarEstado('pendiente')}
-                            disabled={cliente.estado === 'pendiente'}
+                            disabled={estaPagado || cliente.estado === 'pendiente'}
                             title="Pendiente"
-                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.estado === 'pendiente' ? 'bg-orange-600 text-white shadow-sm' : 'hover:bg-orange-100 text-orange-600'}`}
+                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.estado === 'pendiente' ? 'bg-orange-600 text-white shadow-sm' : 'hover:bg-orange-100 text-orange-600'} ${estaPagado ? 'opacity-30 cursor-not-allowed' : ''}`}
                         >
                             <AlertTriangle className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => onCambiarEstado('mas_tarde')}
-                            disabled={cliente.estado === 'mas_tarde'}
+                            disabled={estaPagado || cliente.estado === 'mas_tarde'}
                             title="Más tarde"
-                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.estado === 'mas_tarde' ? 'bg-yellow-600 text-white shadow-sm' : 'hover:bg-yellow-100 text-yellow-600'}`}
+                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.estado === 'mas_tarde' ? 'bg-yellow-600 text-white shadow-sm' : 'hover:bg-yellow-100 text-yellow-600'} ${estaPagado ? 'opacity-30 cursor-not-allowed' : ''}`}
                         >
                             <Clock className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => onCambiarEstado('saltado')}
-                            disabled={cliente.estado === 'saltado'}
+                            disabled={estaPagado || cliente.estado === 'saltado'}
                             title="Saltar"
-                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.estado === 'saltado' ? 'bg-gray-600 text-white shadow-sm' : 'hover:bg-gray-200 text-gray-600'}`}
+                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${cliente.estado === 'saltado' ? 'bg-gray-600 text-white shadow-sm' : 'hover:bg-gray-200 text-gray-600'} ${estaPagado ? 'opacity-30 cursor-not-allowed' : ''}`}
                         >
                             <Ban className="w-4 h-4" />
                         </button>
                     </div>
 
-                    {cliente.estado !== 'pagado' && (
-                        <button
-                            onClick={onCobrar}
-                            className="h-8 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 flex items-center gap-1"
-                        >
-                            Cobrar
-                        </button>
-                    )}
+                    <button
+                        onClick={onCobrar}
+                        className={`h-8 px-3 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 flex items-center gap-1 ${estaPagado ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                    >
+                        {estaPagado ? 'Cobrar +' : 'Cobrar'}
+                    </button>
                 </div>
             </div>
 

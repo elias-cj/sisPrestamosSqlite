@@ -25,7 +25,7 @@ import autoTable from 'jspdf-autotable';
 
 interface ActivityLog {
     id: number;
-    user: {
+    usuario: {
         id: number;
         name: string;
     } | null;
@@ -102,7 +102,7 @@ export default function ActivityLogs({ logs, filters }: Props) {
 
             const tableRows = allLogs.map(log => [
                 `${new Date(log.created_at).toLocaleDateString()} ${new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-                log.user?.name || 'Sistema',
+                log.usuario?.name || 'Sistema',
                 log.action.toUpperCase(),
                 formatModelName(log.model_type),
                 log.description,
@@ -314,7 +314,7 @@ export default function ActivityLogs({ logs, filters }: Props) {
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-gray-900 dark:text-white">
-                                                        {log.user?.name || 'Sistema'}
+                                                        {log.usuario?.name || 'Sistema'}
                                                     </span>
                                                     <span className="text-[10px] text-gray-400 uppercase tracking-tighter flex items-center gap-1">
                                                         <Globe className="w-2.5 h-2.5" /> {log.ip_address}

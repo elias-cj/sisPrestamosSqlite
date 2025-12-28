@@ -63,7 +63,7 @@ export default function Index({ loans }: { loans: { data: any[], links: any[] } 
                                                 {loan.moneda?.simbolo} {parseFloat(loan.monto).toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                                {loan.interes}%
+                                                {loan.interes_porcentaje}%
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 capitalize">
                                                 {loan.tipo_pago}

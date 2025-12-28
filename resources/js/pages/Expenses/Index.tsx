@@ -12,18 +12,26 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface ExpenseForm {
+    categoria_gasto_id: string | number;
+    descripcion: string;
+    monto: string | number;
+    moneda_id: string | number;
+    [key: string]: any;
+}
+
 export default function Index({ expenses, categories, currencies, isBoxOpen }: { expenses: { data: any[], links: any[] }, categories: any[], currencies: any[], isBoxOpen: boolean }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors: formErrors, reset } = useForm<ExpenseForm>({
         categoria_gasto_id: '',
         descripcion: '',
         monto: '',
-        moneda_id: currencies.length > 0 ? currencies[0].id : '',
+        moneda_id: (currencies && currencies.length > 0) ? currencies[0].id : '',
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('expenses.store'), {
+        post('/expenses', {
             onSuccess: () => {
                 setIsModalOpen(false);
                 reset();
@@ -31,9 +39,9 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
         });
     };
 
-    const deleteExpense = (id: string) => {
+    const deleteExpense = (id: string | number) => {
         if (confirm('¿Está seguro de anular este gasto? Se revertirá de la caja.')) {
-            router.delete(route('expenses.destroy', id));
+            router.delete(`/expenses/${id}`);
         }
     };
 
@@ -99,13 +107,13 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
                                             {expense.descripcion}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">
-                                            - {parseFloat(expense.monto).toFixed(2)}
+                                            - {parseFloat(expense.monto).toFixed(2)} {expense.moneda?.simbolo}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 text-xs font-semibold rounded-full
                                                 ${expense.estado === 'registrado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800 line-through'}
                                             `}>
-                                                {expense.estado.toUpperCase()}
+                                                {expense.estado?.toUpperCase()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -142,7 +150,7 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
                                             <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                                         ))}
                                     </select>
-                                    {errors.categoria_gasto_id && <p className="text-red-600 text-xs mt-1">{errors.categoria_gasto_id}</p>}
+                                    {formErrors.categoria_gasto_id && <p className="text-red-600 text-xs mt-1">{formErrors.categoria_gasto_id}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
@@ -153,7 +161,7 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
                                         onChange={e => setData('descripcion', e.target.value)}
                                         required
                                     />
-                                    {errors.descripcion && <p className="text-red-600 text-xs mt-1">{errors.descripcion}</p>}
+                                    {formErrors.descripcion && <p className="text-red-600 text-xs mt-1">{formErrors.descripcion}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto</label>
@@ -165,7 +173,22 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
                                         onChange={e => setData('monto', e.target.value)}
                                         required
                                     />
-                                    {errors.monto && <p className="text-red-600 text-xs mt-1">{errors.monto}</p>}
+                                    {formErrors.monto && <p className="text-red-600 text-xs mt-1">{formErrors.monto}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moneda</label>
+                                    <select
+                                        className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2"
+                                        value={data.moneda_id}
+                                        onChange={e => setData('moneda_id', e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {currencies.map(mon => (
+                                            <option key={mon.id} value={mon.id}>{mon.nombre} ({mon.simbolo})</option>
+                                        ))}
+                                    </select>
+                                    {formErrors.moneda_id && <p className="text-red-600 text-xs mt-1">{formErrors.moneda_id}</p>}
                                 </div>
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>

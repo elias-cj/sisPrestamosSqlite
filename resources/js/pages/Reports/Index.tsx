@@ -366,10 +366,10 @@ export default function Index({
                                         <thead className="bg-gray-50/50 dark:bg-zinc-900/50 font-black text-[9px] uppercase text-gray-400 tracking-widest border-b border-gray-100 dark:border-zinc-700 sticky top-0 z-10">
                                             <tr>
                                                 <th className="px-7 py-5">Socio</th>
-                                                <th className="px-7 py-5 text-center">% Rent.</th>
-                                                <th className="px-7 py-5 text-right">Inv. Periodo</th>
-                                                <th className="px-7 py-5 text-right">Rent. Socio</th>
-                                                <th className="px-7 py-5 text-right">Comisión Dueño</th>
+                                                <th className="px-7 py-5 text-center">% socio</th>
+                                                <th className="px-7 py-5 text-right">Cap. Prestado</th>
+                                                <th className="px-7 py-5 text-right">Ganancia Socio</th>
+                                                <th className="px-7 py-5 text-right">Mi Ganancia</th>
                                                 <th className="px-7 py-5 text-right">Interés Total</th>
                                             </tr>
                                         </thead>
@@ -387,7 +387,7 @@ export default function Index({
                                         </tbody>
                                         <tfoot className="bg-zinc-900 text-white font-black border-t border-zinc-800 text-xs sticky bottom-0">
                                             <tr>
-                                                <td className="px-7 py-5 uppercase tracking-widest text-zinc-500">Totales Periodo</td>
+                                                <td colSpan={2} className="px-7 py-5 uppercase tracking-widest text-zinc-500 text-left">Totales Periodo</td>
                                                 <td className="px-7 py-5 text-right text-zinc-300">{formatCurrency(totalsProfit.capital_prestado)}</td>
                                                 <td className="px-7 py-5 text-right text-emerald-400 tracking-tighter">{formatCurrency(totalsProfit.ganancia_socio)}</td>
                                                 <td className="px-7 py-5 text-right text-indigo-400">{formatCurrency(totalsProfit.mi_ganancia)}</td>

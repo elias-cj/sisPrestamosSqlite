@@ -83,11 +83,7 @@ class DatabaseSeeder extends Seeder
         );
         
         $this->call([
-            ClienteSeeder::class,
-            SocioSeeder::class,
-            CategoriaGastoSeeder::class,
             PermissionSeeder::class,
-            LoanSeeder::class,
         ]);
     }
 }

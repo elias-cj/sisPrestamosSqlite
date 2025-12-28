@@ -15,7 +15,7 @@ class GastoController extends Controller
 {
     public function index()
     {
-        $expenses = Gasto::with(['categoria', 'usuario'])->latest()->paginate(15)->withQueryString();
+        $expenses = Gasto::with(['categoria', 'usuario', 'moneda'])->latest()->paginate(15)->withQueryString();
         return Inertia::render('Expenses/Index', [
             'expenses' => $expenses,
             'categories' => CategoriaGasto::where('estado', 'activo')->get(),

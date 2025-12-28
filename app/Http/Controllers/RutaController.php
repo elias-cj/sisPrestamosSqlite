@@ -80,13 +80,26 @@ class RutaController extends Controller
                 // Filtrar las cuotas que realmente son pendientes para el cálculo de montos
                 $cuotasPendientes = $cuotas->whereNotNull('cuota_id');
                 
+                // Si no hay cuotas pendientes pero el cliente está en ruta, obtener el monto de la cuota del préstamo
+                $montoCobrar = 0;
+                if ($cuotasPendientes->count() > 0) {
+                    // Usar el monto de la primera cuota pendiente
+                    $montoCobrar = (float) $cuotasPendientes->first()->monto;
+                } else if ($primera->prestamo_id) {
+                    // Si ya pagó hoy pero sigue en ruta, obtener el valor de cuota del préstamo
+                    $prestamo = \App\Models\Prestamo::find($primera->prestamo_id);
+                    if ($prestamo) {
+                        $montoCobrar = (float) $prestamo->valor_cuota;
+                    }
+                }
+                
                 return [
                     'cliente_id' => $primera->cliente_id,
                     'nombre' => $primera->nombre,
                     'documento' => $primera->documento,
                     'prestamo_id' => $primera->prestamo_id,
                     'cuota_id' => $primera->cuota_id,
-                    'monto_cobrar' => $cuotasPendientes->sum('monto'),
+                    'monto_cobrar' => $montoCobrar,
                     'monto_pagado' => (float) ($primera->pagado_hoy ?? 0),
                     'cuotas_pendientes' => $cuotasPendientes->count(),
                     'dias_mora' => $primera->fecha_programada 
@@ -100,7 +113,7 @@ class RutaController extends Controller
         $ordenGuardado = $ruta->orden ?? [];
         $ordenMap = collect($ordenGuardado)->keyBy('cliente_id');
 
-        $clientesOrdenados = $clientesConCuotas->map(function ($cliente) use ($ordenMap) {
+        $clientesFinales = $clientesConCuotas->map(function ($cliente) use ($ordenMap) {
             $ordenInfo = $ordenMap->get($cliente['cliente_id']);
             return array_merge($cliente, [
                 'posicion' => $ordenInfo['posicion'] ?? 999,
@@ -109,6 +122,15 @@ class RutaController extends Controller
                 'hora_estimada' => $ordenInfo['hora_estimada'] ?? null,
             ]);
         })->sortBy('posicion')->values();
+
+        // Cargar Ubicaciones de los clientes en ruta
+        $idsClientes = $clientesFinales->pluck('cliente_id')->unique();
+        $ubicaciones = \App\Models\ClienteUbicacion::whereIn('cliente_id', $idsClientes)->get()->groupBy('cliente_id');
+
+        $clientesOrdenados = $clientesFinales->map(function($c) use ($ubicaciones) {
+            $c['ubicaciones'] = $ubicaciones->get($c['cliente_id']) ?? [];
+            return $c;
+        });
 
         // Calcular estadísticas
         $stats = [
@@ -133,6 +155,10 @@ class RutaController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->user()->hasPermission('ruta.administrar')) {
+            return back()->with('error', 'No tienes permiso para ordenar la ruta.');
+        }
+
         $validated = $request->validate([
             'orden' => 'required|array',
             'orden.*.cliente_id' => 'required|integer',
@@ -180,10 +206,14 @@ class RutaController extends Controller
 
     public function toggleBloqueo(Request $request)
     {
-        $hoy = now()->toDateString();
+        if (!$request->user()->hasPermission('ruta.administrar')) {
+            return back()->with('error', 'No tienes permiso para bloquear la ruta.');
+        }
+
+        $hoy = now()->format('Y-m-d');
         $userId = auth()->id();
 
-        $ruta = RutaDiaria::where('fecha', $hoy)
+        $ruta = RutaDiaria::whereDate('fecha', $hoy)
             ->where('user_id', $userId)
             ->firstOrFail();
 
@@ -191,5 +221,44 @@ class RutaController extends Controller
         $ruta->save();
 
         return back()->with('success', $ruta->bloqueada ? 'Ruta bloqueada' : 'Ruta desbloqueada');
+    }
+
+    public function storeUbicacion(Request $request, $clienteId)
+    {
+        if (!$request->user()->hasPermission('ruta.gps.capturar')) {
+            return back()->with('error', 'No tienes permiso para capturar ubicaciones.');
+        }
+
+        $validated = $request->validate([
+            'latitud' => 'required|numeric',
+            'longitud' => 'required|numeric',
+            'tipo' => 'required|string|in:hogar,trabajo,negocio,otro',
+            'es_principal' => 'boolean'
+        ]);
+
+        // Limpiar ubicaciones anteriores para mantener "solo una ruta"
+        \App\Models\ClienteUbicacion::where('cliente_id', $clienteId)->delete();
+
+        \App\Models\ClienteUbicacion::create([
+            'cliente_id' => $clienteId,
+            'latitud' => $validated['latitud'],
+            'longitud' => $validated['longitud'],
+            'tipo' => $validated['tipo'],
+            'es_principal' => $validated['es_principal'] ?? true,
+        ]);
+
+        return back()->with('success', 'Ubicación guardada correctamente');
+    }
+
+    public function destroyUbicacion(Request $request, $ubicacionId)
+    {
+        if (!$request->user()->hasPermission('ruta.gps.eliminar')) {
+            return back()->with('error', 'No tienes permiso para eliminar ubicaciones GPS.');
+        }
+
+        $ubicacion = \App\Models\ClienteUbicacion::findOrFail($ubicacionId);
+        $ubicacion->delete();
+
+        return back()->with('success', 'Ubicación eliminada');
     }
 }

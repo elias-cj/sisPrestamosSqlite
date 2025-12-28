@@ -22,6 +22,7 @@ class PrestamoService
             $valorCuota = $totalPagar / $cuotas;
             
             $data['valor_cuota'] = $valorCuota;
+            $data['interes'] = $totalInteres; // Store Amount, not Percentage
             $data['estado'] = 'activo';
 
             $loan = Prestamo::create($data);

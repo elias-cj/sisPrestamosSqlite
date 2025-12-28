@@ -167,6 +167,7 @@ class ReporteController extends Controller
                 'capital_inicial' => (float) $socio->capital_inicial,
                 'capital_disponible' => (float) ($socio->capital_inicial - $socio->capital_comprometido),
                 'capital_comprometido' => (float) $socio->capital_comprometido,
+                'ganancias_acumuladas' => (float) $socio->ganancias_acumuladas,
                 'ganancias_periodo' => $gananciaCalculada,
                 'portfolio' => $portfolio,
             ];
@@ -183,11 +184,6 @@ class ReporteController extends Controller
 
             $gananciaSocio = (float) ($gains->ganancia_socio ?? 0);
             $miGanancia = (float) ($gains->mi_ganancia ?? 0);
-
-            if ($socio->id == 1) {
-                $miGanancia = $gananciaSocio + $miGanancia;
-                $gananciaSocio = 0;
-            }
 
             return [
                 'id' => $socio->id,

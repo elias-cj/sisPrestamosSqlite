@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Lock, Unlock, Map as MapIcon } from 'lucide-react';
 import ClienteRutaCard from '@/components/ClienteRutaCard';
@@ -34,9 +34,11 @@ interface Cliente {
     cliente_id: number;
     nombre: string;
     documento: string;
+    ubicaciones: any[];
     prestamo_id: number;
     cuota_id: number;
     monto_cobrar: number;
+    monto_pagado: number;
     cuotas_pendientes: number;
     dias_mora: number;
     posicion: number;
@@ -85,10 +87,11 @@ export default function Index({
     ruta: RutaInfo;
     stats: Stats;
 }) {
+    const { auth } = usePage<any>().props;
     const [clientes, setClientes] = useState(initialClientes);
     const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [capturando, setCapturando] = useState<number | null>(null);
 
-    // Sincronizar estado local cuando las props cambian (Inertia reloads)
     useEffect(() => {
         setClientes(initialClientes);
     }, [initialClientes]);
@@ -122,7 +125,6 @@ export default function Index({
 
                 const newItems = arrayMove(items, oldIndex, newIndex);
 
-                // Auto-guardar con debounce
                 if (saveTimeout) clearTimeout(saveTimeout);
                 const timeout = setTimeout(() => {
                     guardarOrden(newItems);
@@ -147,8 +149,7 @@ export default function Index({
             '/rutas',
             { orden },
             {
-                preserveScroll: true
-                ,
+                preserveScroll: true,
                 preserveState: true,
             }
         );
@@ -161,17 +162,58 @@ export default function Index({
             {
                 preserveScroll: true,
                 preserveState: true,
-                onSuccess: () => {
-                    setClientes((prev) =>
-                        prev.map((c) => (c.cliente_id == clienteId ? { ...c, estado: nuevoEstado as any } : c))
-                    );
-                },
             }
         );
     };
 
     const irACobro = (clienteId: number) => {
         router.visit(`/payments/create?cliente_id=${clienteId}`);
+    };
+
+    const capturarUbicacion = (clienteId: number, tipo: string) => {
+        if (!navigator.geolocation) {
+            alert('Tu navegador no soporta geolocalización');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                router.post(
+                    `/rutas/${clienteId}/ubicacion`,
+                    {
+                        latitud: position.coords.latitude,
+                        longitud: position.coords.longitude,
+                        tipo: tipo,
+                        es_principal: true
+                    },
+                    {
+                        preserveScroll: true,
+                    }
+                );
+            },
+            (error) => {
+                let msg = 'No se pudo obtener la ubicación.';
+                if (error.code === 1) msg = 'Permiso denegado para el GPS.';
+                if (error.code !== 3) {
+                    alert(msg);
+                }
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 30000,
+                maximumAge: 0
+            }
+        );
+    };
+
+    const eliminarUbicacion = (ubicacionId: number) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta ruta GPS?')) {
+            return;
+        }
+
+        router.delete(`/rutas/ubicacion/${ubicacionId}`, {
+            preserveScroll: true,
+        });
     };
 
     const toggleBloqueo = () => {
@@ -189,7 +231,6 @@ export default function Index({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ruta de Cobro" />
             <div className="flex flex-col gap-4 p-4 md:p-6 flex-1 bg-gray-50/50 dark:bg-zinc-950">
-                {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                         <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -223,7 +264,6 @@ export default function Index({
                     </button>
                 </div>
 
-                {/* Stats Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="bg-white dark:bg-zinc-800 p-4 rounded-2xl border border-gray-100 dark:border-zinc-700 shadow-sm">
                         <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Pendientes</p>
@@ -247,7 +287,6 @@ export default function Index({
                     </div>
                 </div>
 
-                {/* Lista de Clientes  */}
                 <div className="bg-white dark:bg-zinc-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-zinc-700 shadow-sm">
                     <h2 className="text-lg font-black text-gray-900 dark:text-white mb-4 uppercase">
                         Clientes de Hoy ({clientes.length})
@@ -268,7 +307,10 @@ export default function Index({
                                                 posicion={index + 1}
                                                 onCobrar={() => irACobro(cliente.cliente_id)}
                                                 onCambiarEstado={(estado) => cambiarEstado(cliente.cliente_id, estado)}
+                                                onCapturarUbicacion={(tipo) => capturarUbicacion(cliente.cliente_id, tipo)}
+                                                onEliminarUbicacion={eliminarUbicacion}
                                                 bloqueada={ruta.bloqueada}
+                                                permissions={auth.permissions}
                                             />
                                         </SortableItem>
                                     ))}

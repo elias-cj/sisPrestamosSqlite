@@ -51,107 +51,50 @@ class PagoController extends Controller
         }
 
         try {
-            $pagoData = null;
+            // Use PaymentService which has correct profit calculation logic
+            $paymentService = app(\App\Services\PaymentService::class);
+            $pago = $paymentService->processPayment($validated, $caja);
             
-            DB::transaction(function () use ($validated, $caja, &$pagoData) {
-                $cuota = Cuota::lockForUpdate()->find($validated['cuota_id']);
+            // Actualizar automáticamente el estado en la Ruta de Cobro si existe
+            $hoy = now()->format('Y-m-d');
+            $ruta = RutaDiaria::whereDate('fecha', $hoy)
+                ->where('user_id', Auth::id())
+                ->first();
+            
+            if ($ruta) {
+                $ruta->marcarComoPagado($pago->cuota->prestamo->cliente_id);
+            }
+            
+            // Return capital to partners when loan is fully paid
+            $cuota = $pago->cuota;
+            $prestamo = $cuota->prestamo;
+            if ($prestamo->cuotas()->where('estado', '!=', 'pagado')->count() === 0) {
+                $prestamo->update(['estado' => 'cancelado']);
                 
-                $pago = Pago::create([
-                    'cuota_id' => $cuota->id,
-                    'monto_pagado' => $validated['monto_pagado'],
-                    'fecha_pago' => now(),
-                    'mora' => $validated['mora'] ?? 0,
-                    'usuario_id' => Auth::id(),
-                    'caja_id' => $caja->id,
-                ]);
-
-                $totalIngreso = $pago->monto_pagado + $pago->mora;
-                $caja->increment('total_ingresos', $totalIngreso);
-                
-                $totalPagadoCuota = $cuota->pagos()->sum('monto_pagado');
-                
-                if ($totalPagadoCuota >= $cuota->monto) {
-                    $cuota->update(['estado' => 'pagado']);
-                    
-                    $prestamo = $cuota->prestamo;
-
-                    $interestAmountTotal = ($prestamo->monto * $prestamo->interes) / 100;
-                    $interestPerCuota = $interestAmountTotal / $prestamo->numero_cuotas;
-                    $capitalPerCuota = $prestamo->monto / $prestamo->numero_cuotas;
-
-                    $prestamoSocios = DB::table('prestamo_socio')->where('prestamo_id', $prestamo->id)->get();
-
-                    if ($prestamoSocios->count() > 0) {
-                        foreach ($prestamoSocios as $ps) {
-                            $socio = Socio::find($ps->socio_id);
-                            if (!$socio) continue;
-
-                            $shareInteres = ($interestPerCuota * $ps->porcentaje_participacion) / 100;
-                            $shareCapital = ($capitalPerCuota * $ps->porcentaje_participacion) / 100;
-
-                            $gainSocio = ($shareInteres * $ps->porcentaje_ganancia_socio) / 100;
-                            $gainOwner = ($shareInteres * $ps->porcentaje_ganancia_dueno) / 100;
-
-                            Ganancia::create([
-                                'prestamo_id' => $prestamo->id,
-                                'socio_id' => $socio->id,
-                                'monto_ganancia_socio' => $gainSocio,
-                                'monto_ganancia_dueno' => $gainOwner,
-                            ]);
-
-                            $socio->increment('ganancias_acumuladas', $gainSocio);
-                            $socio->decrement('capital_comprometido', $shareCapital);
-                            $socio->increment('capital_disponible', $shareCapital);
-
-                            if ($gainOwner > 0 && $socio->id != 1) {
-                                $owner = Socio::find(1);
-                                if ($owner) {
-                                    $owner->increment('ganancias_acumuladas', $gainOwner);
-                                }
-                            }
-                        }
-                    } else {
-                        Ganancia::create([
-                            'prestamo_id' => $prestamo->id,
-                            'socio_id' => null,
-                            'monto_ganancia_socio' => 0,
-                            'monto_ganancia_dueno' => $interestPerCuota,
-                        ]);
+                $prestamoSocios = DB::table('prestamo_socio')->where('prestamo_id', $prestamo->id)->get();
+                foreach ($prestamoSocios as $ps) {
+                    $socio = Socio::find($ps->socio_id);
+                    if ($socio) {
+                        $socio->decrement('capital_comprometido', $ps->monto_aportado);
+                        $socio->increment('capital_disponible', $ps->monto_aportado);
                     }
-
-                    if ($prestamo->cuotas()->where('estado', '!=', 'pagado')->count() === 0) {
-                        $prestamo->update(['estado' => 'cancelado']);
-                    }
-                } else {
-                     $cuota->update(['estado' => 'parcial']);
                 }
-                
-                $pago->load(['cuota.prestamo.cliente', 'usuario']);
-                $pagoData = $pago;
-
-                // Actualizar automáticamente el estado en la Ruta de Cobro si existe
-                $hoy = now()->format('Y-m-d');
-                $ruta = RutaDiaria::whereDate('fecha', $hoy)
-                    ->where('user_id', Auth::id())
-                    ->first();
-                
-                if ($ruta) {
-                    $ruta->marcarComoPagado($cuota->prestamo->cliente_id);
-                }
-            });
+            }
+            
+            $pago->load(['cuota.prestamo.cliente', 'usuario']);
 
             return back()->with('paymentReceipt', [
-                'id' => $pagoData->id,
-                'monto_pagado' => $pagoData->monto_pagado,
-                'mora' => $pagoData->mora,
-                'fecha_pago' => $pagoData->fecha_pago->format('d/m/Y H:i'),
-                'cuota_numero' => $pagoData->cuota->numero_cuota,
-                'prestamo_id' => $pagoData->cuota->prestamo->id,
-                'cliente_nombre' => $pagoData->cuota->prestamo->cliente->nombre,
-                'cliente_documento' => $pagoData->cuota->prestamo->cliente->documento,
-                'monto_prestamo' => $pagoData->cuota->prestamo->monto,
-                'interes' => $pagoData->cuota->prestamo->interes,
-                'usuario_nombre' => $pagoData->usuario->name,
+                'id' => $pago->id,
+                'monto_pagado' => $pago->monto_pagado,
+                'mora' => $pago->mora,
+                'fecha_pago' => $pago->fecha_pago->format('d/m/Y H:i'),
+                'cuota_numero' => $pago->cuota->numero_cuota,
+                'prestamo_id' => $pago->cuota->prestamo->id,
+                'cliente_nombre' => $pago->cuota->prestamo->cliente->nombre,
+                'cliente_documento' => $pago->cuota->prestamo->cliente->documento,
+                'monto_prestamo' => $pago->cuota->prestamo->monto,
+                'interes' => $pago->cuota->prestamo->interes,
+                'usuario_nombre' => $pago->usuario->name,
             ]);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Error al procesar el pago: ' . $e->getMessage()]);

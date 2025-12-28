@@ -30,6 +30,16 @@ class Prestamo extends Model
         'valor_cuota' => 'decimal:2',
     ];
 
+    protected $appends = ['interes_porcentaje'];
+
+    public function getInteresPorcentajeAttribute()
+    {
+        if ($this->monto > 0) {
+            return round(($this->interes / $this->monto) * 100, 2);
+        }
+        return 0;
+    }
+
     public function cliente()
     {
         return $this->belongsTo(Cliente::class);
