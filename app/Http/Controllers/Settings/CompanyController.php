@@ -30,7 +30,9 @@ class CompanyController extends Controller
             'direccion' => 'required|string|max:255',
             'telefono' => 'required|string|max:20',
             'email' => 'required|email|max:255',
-            'logo' => 'nullable|mimes:jpg,jpeg,png,webp,svg,pdf|max:2048', // Soporta más formatos y hasta 2MB
+            'logo' => 'nullable|mimes:jpg,jpeg,png,webp,svg,pdf|max:2048',
+            'qr_pago' => 'nullable|mimes:jpg,jpeg,png,webp|max:2048',
+            'qr_vencimiento' => 'nullable|date',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -41,6 +43,16 @@ class CompanyController extends Controller
             
             $path = $request->file('logo')->store('logos', 'public');
             $validated['logo'] = $path;
+        }
+
+        if ($request->hasFile('qr_pago')) {
+            // Delete old QR if exists
+            if ($company->qr_pago) {
+                Storage::disk('public')->delete($company->qr_pago);
+            }
+            
+            $path = $request->file('qr_pago')->store('qrs', 'public');
+            $validated['qr_pago'] = $path;
         }
 
         $company->update($validated);

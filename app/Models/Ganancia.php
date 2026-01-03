@@ -12,6 +12,7 @@ class Ganancia extends Model
     protected $fillable = [
         'prestamo_id',
         'socio_id',
+        'pago_id',
         'monto_ganancia_socio',
         'monto_ganancia_dueno',
     ];

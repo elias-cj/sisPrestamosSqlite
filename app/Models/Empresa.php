@@ -17,6 +17,8 @@ class Empresa extends Model
         'email',
         'moneda_defecto_id',
         'logo',
+        'qr_pago',
+        'qr_vencimiento',
     ];
     
     public function monedaDefecto()

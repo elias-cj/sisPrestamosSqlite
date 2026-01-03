@@ -289,12 +289,13 @@ export default function ActivityLogs({ logs, filters }: Props) {
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">Acción</th>
                                     <th className="px-6 py-4">Módulo / ID</th>
+                                    <th className="px-6 py-4">URL / Método</th>
                                     <th className="px-6 py-4">Descripción</th>
                                     <th className="px-6 py-4 text-center">Detalles</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-zinc-800">
-                                {logs.data.map((log) => (
+                                {logs.data.map((log: any) => (
                                     <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
@@ -339,7 +340,20 @@ export default function ActivityLogs({ logs, filters }: Props) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <p className="text-gray-600 dark:text-zinc-400 text-xs font-medium max-w-xs truncate">
+                                            <div className="flex flex-col">
+                                                <span className="font-black text-[10px] text-zinc-900 dark:text-zinc-100 uppercase tracking-tighter truncate max-w-[120px]" title={log.url}>
+                                                    {new URL(log.url || 'http://localhost').pathname}
+                                                </span>
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded w-fit mt-1 ${log.method === 'POST' ? 'bg-blue-100 text-blue-700' :
+                                                        log.method === 'DELETE' ? 'bg-red-100 text-red-700' :
+                                                            'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                    {log.method || 'GET'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-gray-600 dark:text-zinc-400 text-xs font-medium max-w-xs truncate" title={log.description}>
                                                 {log.description}
                                             </p>
                                         </td>

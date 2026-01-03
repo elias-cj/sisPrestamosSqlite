@@ -23,6 +23,7 @@ interface Loan {
     monto: number;
     interes: number;
     tipo_pago: string;
+    estado: string;
     cuotas: Quota[];
 }
 
@@ -45,17 +46,20 @@ interface PaymentReceipt {
     monto_prestamo: number;
     interes: number;
     usuario_nombre: string;
+    metodo_pago: string;
+    referencia_pago?: string;
 }
 
-export default function Create({ clients, paymentReceipt }: { clients: Client[], paymentReceipt?: PaymentReceipt }) {
+export default function Create({ clients, paymentReceipt, company }: { clients: Client[], paymentReceipt?: PaymentReceipt, company?: any }) {
     // Debug: Log clients to console
-    console.log('Loaded clients:', clients);
+    console.log('Loaded clients/company:', clients, company);
     console.log('Total clients:', clients.length);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         cuota_id: '',
         monto_pagado: '',
         mora: 0,
+        metodo_pago: 'efectivo',
     });
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -82,7 +86,8 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
         setSearchTerm(''); // Clear search to hide dropdown
         // Auto-select first active loan if any
         if (client.prestamos.length > 0) {
-            setSelectedLoan(client.prestamos[0]);
+            const activeLoan = client.prestamos.find(l => l.estado === 'activo');
+            setSelectedLoan(activeLoan || client.prestamos[0]);
         } else {
             setSelectedLoan(null);
         }
@@ -106,7 +111,8 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
         setData({
             cuota_id: quota.id.toString(),
             monto_pagado: quota.monto.toString(),
-            mora: 0
+            mora: 0,
+            metodo_pago: 'efectivo',
         });
         setIsModalOpen(true);
     };
@@ -290,22 +296,40 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
                             </div>
                             <div className="divide-y divide-gray-100 dark:divide-zinc-700/50 max-h-[400px] overflow-y-auto">
                                 {selectedClient && selectedClient.prestamos.length > 0 ? (
-                                    selectedClient.prestamos.map(loan => (
-                                        <button
-                                            key={loan.id}
-                                            onClick={() => setSelectedLoan(loan)}
-                                            className={`w-full text-left p-5 transition-all group relative ${selectedLoan?.id === loan.id ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-zinc-700/30'}`}
-                                        >
-                                            {selectedLoan?.id === loan.id && (
-                                                <div className="absolute inset-y-0 left-0 w-1.5 bg-indigo-600 dark:bg-indigo-500"></div>
-                                            )}
-                                            <div className="flex justify-between items-center mb-1.5">
-                                                <span className={`font-black text-lg ${selectedLoan?.id === loan.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-zinc-200'}`}>#{loan.id}</span>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2 py-0.5 bg-gray-100 dark:bg-zinc-900 rounded-md">{loan.tipo_pago}</span>
-                                            </div>
-                                            <div className="text-sm font-black text-emerald-600 dark:text-emerald-500">$ {parseFloat(loan.monto.toString()).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                                        </button>
-                                    ))
+                                    [...selectedClient.prestamos]
+                                        .sort((a, b) => {
+                                            if (a.estado === 'activo' && b.estado !== 'activo') return -1;
+                                            if (a.estado !== 'activo' && b.estado === 'activo') return 1;
+                                            return b.id - a.id;
+                                        })
+                                        .map(loan => (
+                                            <button
+                                                key={loan.id}
+                                                onClick={() => setSelectedLoan(loan)}
+                                                className={`w-full text-left p-5 transition-all group relative ${selectedLoan?.id === loan.id ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-zinc-700/30'}`}
+                                            >
+                                                {selectedLoan?.id === loan.id && (
+                                                    <div className={`absolute inset-y-0 left-0 w-1.5 ${loan.estado === 'activo' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-emerald-600 dark:bg-emerald-500'}`}></div>
+                                                )}
+                                                <div className="flex justify-between items-center mb-1.5">
+                                                    <span className={`font-black text-lg ${selectedLoan?.id === loan.id
+                                                        ? (loan.estado === 'activo' ? 'text-indigo-600 dark:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400')
+                                                        : (loan.estado === 'activo' ? 'text-gray-900 dark:text-zinc-200' : 'text-emerald-600/70 dark:text-emerald-400/70')
+                                                        }`}>
+                                                        #{loan.id}
+                                                    </span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${loan.estado === 'activo'
+                                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400'
+                                                        }`}>
+                                                        {loan.estado === 'activo' ? loan.tipo_pago : 'Pagado'}
+                                                    </span>
+                                                </div>
+                                                <div className={`text-sm font-black ${loan.estado === 'activo' ? 'text-indigo-600 dark:text-indigo-500' : 'text-emerald-600 dark:text-emerald-500'}`}>
+                                                    $ {parseFloat(loan.monto.toString()).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </div>
+                                            </button>
+                                        ))
                                 ) : (
                                     <div className="p-8 text-center text-gray-400 text-xs italic">
                                         No hay préstamos para mostrar
@@ -405,9 +429,9 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
 
                 {/* Payment Modal */}
                 {isModalOpen && targetQuota && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                            <div className="bg-emerald-600 p-4 text-white flex justify-between items-center">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-zinc-700">
+                            <div className="bg-emerald-600 p-4 text-white flex justify-between items-center sticky top-0 z-10">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <Banknote className="w-5 h-5" /> Registrar Cobro
                                 </h3>
@@ -435,11 +459,46 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mora / Recargo (Opcional)</label>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Método de Pago</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['efectivo', 'qr', 'transferencia', 'tarjeta'].map((method) => (
+                                            <button
+                                                key={method}
+                                                type="button"
+                                                onClick={() => setData('metodo_pago', method)}
+                                                className={`py-2 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-wider transition-all ${data.metodo_pago === method
+                                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10'
+                                                    : 'border-gray-100 dark:border-zinc-700 text-gray-400 hover:border-gray-200'
+                                                    }`}
+                                            >
+                                                {method}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {errors.metodo_pago && <p className="text-red-500 text-[10px] mt-1">{errors.metodo_pago}</p>}
+                                </div>
+
+                                {data.metodo_pago === 'qr' && company?.qr_pago && (
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 flex flex-col items-center animate-in zoom-in-95 duration-200">
+                                        <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-3">Escanee para pagar</p>
+                                        <img
+                                            src={company.qr_pago_url}
+                                            alt="QR de Pago"
+                                            className="w-48 h-48 object-contain bg-white p-2 rounded-xl shadow-md"
+                                        />
+                                        {company.qr_vencimiento && (
+                                            <p className="text-[10px] text-amber-600 mt-2">Vence el: {new Date(company.qr_vencimiento).toLocaleDateString()}</p>
+                                        )}
+                                    </div>
+                                )}
+
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Mora / Recargo (Opcional)</label>
                                     <input
                                         type="number"
                                         step="0.01"
-                                        className="w-full rounded-lg border-gray-300 dark:border-zinc-600 dark:bg-zinc-900"
+                                        className="w-full rounded-xl border-gray-200 dark:border-zinc-700 dark:bg-zinc-900 text-sm font-bold px-4 py-3"
                                         value={data.mora}
                                         onChange={e => setData('mora', parseFloat(e.target.value))}
                                     />
@@ -527,9 +586,13 @@ export default function Create({ clients, paymentReceipt }: { clients: Client[],
                                             <p className="text-sm text-gray-600 mb-1">Monto Pagado</p>
                                             <p className="text-2xl font-bold text-emerald-600">${parseFloat(paymentReceipt.monto_pagado.toString()).toFixed(2)}</p>
                                         </div>
+                                        <div>
+                                            <p className="text-sm text-gray-600 mb-1">Método de Pago</p>
+                                            <p className="text-lg font-bold text-gray-900 uppercase">{paymentReceipt.metodo_pago}</p>
+                                        </div>
                                         {paymentReceipt.mora > 0 && (
                                             <div>
-                                                <p className="text-sm text-gray-600 mb-1">Mora/Recargo</p>
+                                                <p className="text-sm text-gray-600 mb-1">Mora / Recargo</p>
                                                 <p className="text-2xl font-bold text-orange-600">${parseFloat(paymentReceipt.mora.toString()).toFixed(2)}</p>
                                             </div>
                                         )}

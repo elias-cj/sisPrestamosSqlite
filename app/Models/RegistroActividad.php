@@ -14,6 +14,8 @@ class RegistroActividad extends Model
         'model_id',
         'action',
         'description',
+        'url',
+        'method',
         'old_values',
         'new_values',
         'ip_address',

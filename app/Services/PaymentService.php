@@ -18,6 +18,8 @@ class PaymentService
             $payment = Pago::create([
                 'cuota_id' => $cuota->id,
                 'monto_pagado' => $data['monto_pagado'],
+                'metodo_pago' => $data['metodo_pago'] ?? 'efectivo',
+                'referencia_pago' => $data['referencia_pago'] ?? null,
                 'fecha_pago' => now(),
                 'mora' => $data['mora'] ?? 0,
                 'usuario_id' => auth()->id(),
@@ -28,7 +30,7 @@ class PaymentService
             $caja->increment('total_ingresos', $payment->monto_pagado + $payment->mora);
             
             // Update Cuota Status
-            $totalPagado = $cuota->pagos()->sum('monto_pagado');
+            $totalPagado = $cuota->pagos()->where('estado', '!=', 'anulado')->sum('monto_pagado');
             if ($totalPagado >= $cuota->monto) {
                 $cuota->update(['estado' => 'pagado']);
                 // Distribute Profits logic here (Simplified Trigger)
@@ -41,6 +43,61 @@ class PaymentService
         });
     }
     
+    public function annulPayment(Pago $pago, string $motivo)
+    {
+        return DB::transaction(function () use ($pago, $motivo) {
+            // 1. Marcar el pago como anulado
+            $pago->update([
+                'estado' => 'anulado',
+                'motivo_anulacion' => $motivo
+            ]);
+
+            // 2. Revertir Caja
+            $caja = $pago->caja;
+            if ($caja && $caja->estado === 'abierta') {
+                $caja->decrement('total_ingresos', $pago->monto_pagado + $pago->mora);
+            }
+
+            // 3. Revertir Estado de la Cuota
+            $cuota = $pago->cuota;
+            $totalPagadoRestante = $cuota->pagos()->where('estado', '!=', 'anulado')->sum('monto_pagado');
+            
+            if ($totalPagadoRestante <= 0) {
+                $cuota->update(['estado' => 'pendiente']);
+            } else if ($totalPagadoRestante < $cuota->monto) {
+                $cuota->update(['estado' => 'parcial']);
+            }
+
+            // 4. Revertir Estado del Préstamo
+            $prestamo = $cuota->prestamo;
+            if ($prestamo->estado === 'cancelado') {
+                $prestamo->update(['estado' => 'activo']);
+                
+                // Revertir capital de socios si fue devuelto
+                $prestamoSocios = DB::table('prestamo_socio')->where('prestamo_id', $prestamo->id)->get();
+                foreach ($prestamoSocios as $ps) {
+                    $socio = \App\Models\Socio::find($ps->socio_id);
+                    if ($socio) {
+                        $socio->increment('capital_comprometido', $ps->monto_aportado);
+                        $socio->decrement('capital_disponible', $ps->monto_aportado);
+                    }
+                }
+            }
+
+            // 5. Revertir Ganancias de Socios
+            $ganancias = \App\Models\Ganancia::where('pago_id', $pago->id)->get();
+            foreach ($ganancias as $ganancia) {
+                $socio = $ganancia->socio;
+                if ($socio) {
+                    $socio->decrement('ganancias_acumuladas', $ganancia->monto_ganancia_socio);
+                }
+                $ganancia->delete();
+            }
+
+            return $pago;
+        });
+    }
+
     protected function distributeProfits(Cuota $cuota, Pago $payment)
     {
         // 1. Calcular la ganancia real de este pago (Interés)
@@ -71,6 +128,7 @@ class PaymentService
             Ganancia::create([
                 'prestamo_id' => $cuota->prestamo_id,
                 'socio_id' => $socio->id,
+                'pago_id' => $payment->id,
                 'monto_ganancia_socio' => $gananciaSocio,
                 'monto_ganancia_dueno' => $gananciaDueno,
                 'fecha' => now(),

@@ -49,6 +49,8 @@ trait LogsActivity
             'model_id' => $this->id,
             'action' => $action,
             'description' => $this->getActivityDescription($action),
+            'url' => Request::fullUrl(),
+            'method' => Request::method(),
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'ip_address' => Request::ip(),
@@ -73,7 +75,13 @@ trait LogsActivity
             $changedFields = array_diff($changedFields, ['updated_at', 'created_at']);
             
             if (!empty($changedFields)) {
-                $description .= ". Campos modificados: " . implode(', ', $changedFields);
+                $details = [];
+                foreach ($changedFields as $field) {
+                    $old = $this->getRawOriginal($field);
+                    $new = $this->getAttribute($field);
+                    $details[] = "{$field} (de '{$old}' a '{$new}')";
+                }
+                $description .= ". Cambios: " . implode(', ', $details);
             }
         }
 

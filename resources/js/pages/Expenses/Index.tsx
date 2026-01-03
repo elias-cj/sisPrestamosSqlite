@@ -20,7 +20,7 @@ interface ExpenseForm {
     [key: string]: any;
 }
 
-export default function Index({ expenses, categories, currencies, isBoxOpen }: { expenses: { data: any[], links: any[] }, categories: any[], currencies: any[], isBoxOpen: boolean }) {
+export default function Index({ expenses, categories, currencies, isBoxOpen, filters }: { expenses: { data: any[], links: any[] }, categories: any[], currencies: any[], isBoxOpen: boolean, filters: any }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { data, setData, post, processing, errors: formErrors, reset } = useForm<ExpenseForm>({
         categoria_gasto_id: '',
@@ -45,6 +45,10 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
         }
     };
 
+    const handleFilterChange = (key: string, value: string) => {
+        router.get('/expenses', { ...filters, [key]: value }, { preserveState: true });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Control de Gastos" />
@@ -63,6 +67,56 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
                     >
                         <Plus className="w-4 h-4" /> Registrar Gasto
                     </button>
+                </div>
+
+                {/* Filtros */}
+                <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-gray-200 dark:border-zinc-700 mb-6 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 uppercase">Desde</label>
+                            <input
+                                type="date"
+                                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                                value={filters?.from_date || ''}
+                                onChange={(e) => handleFilterChange('from_date', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 uppercase">Hasta</label>
+                            <input
+                                type="date"
+                                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                                value={filters?.to_date || ''}
+                                onChange={(e) => handleFilterChange('to_date', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 uppercase">Hora Inicio</label>
+                            <input
+                                type="time"
+                                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                                value={filters?.from_time || ''}
+                                onChange={(e) => handleFilterChange('from_time', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 uppercase">Hora Fin</label>
+                            <input
+                                type="time"
+                                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                                value={filters?.to_time || ''}
+                                onChange={(e) => handleFilterChange('to_time', e.target.value)}
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Link
+                                href="/expenses"
+                                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm text-center font-medium transition-colors"
+                            >
+                                Limpiar
+                            </Link>
+                        </div>
+                    </div>
                 </div>
 
                 {!isBoxOpen && (
@@ -98,7 +152,10 @@ export default function Index({ expenses, categories, currencies, isBoxOpen }: {
                                 expenses.data.map((expense) => (
                                     <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-zinc-700/50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(expense.fecha).toLocaleDateString()}
+                                            <div className="flex flex-col">
+                                                <span>{new Date(expense.fecha).toLocaleDateString()}</span>
+                                                <span className="text-[10px] text-gray-400">{new Date(expense.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                             {expense.categoria?.nombre}

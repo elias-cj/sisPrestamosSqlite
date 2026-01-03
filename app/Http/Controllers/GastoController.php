@@ -13,12 +13,24 @@ use Illuminate\Support\Facades\DB;
 
 class GastoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $expenses = Gasto::with(['categoria', 'usuario', 'moneda'])->latest()->paginate(15)->withQueryString();
+        $query = Gasto::with(['categoria', 'usuario', 'moneda']);
+
+        if ($request->from_date) $query->whereDate('fecha', '>=', $request->from_date);
+        if ($request->to_date) $query->whereDate('fecha', '<=', $request->to_date);
+        
+        // Asumiendo que 'created_at' tiene la hora exacta si 'fecha' es solo date
+        if ($request->from_time) $query->whereTime('created_at', '>=', $request->from_time);
+        if ($request->to_time) $query->whereTime('created_at', '<=', $request->to_time);
+
+        $gastos = $query->latest()->paginate(10)->withQueryString();
+        $categorias = CategoriaGasto::all();
+
         return Inertia::render('Expenses/Index', [
-            'expenses' => $expenses,
-            'categories' => CategoriaGasto::where('estado', 'activo')->get(),
+            'expenses' => $gastos,
+            'categories' => $categorias,
+            'filters' => $request->only(['from_date', 'to_date', 'from_time', 'to_time']),
             'currencies' => Moneda::where('estado', 'activo')->get(),
             'isBoxOpen' => Caja::where('usuario_id', Auth::id())->where('estado', 'abierta')->exists(),
         ]);

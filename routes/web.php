@@ -41,6 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Gastos
     Route::resource('expenses', \App\Http\Controllers\GastoController::class)->middleware('permission:ver_gastos');
+    Route::resource('expense-categories', \App\Http\Controllers\CategoriaGastoController::class)->middleware('permission:ver_configuracion');
     
     // Pagos
     Route::resource('payments', \App\Http\Controllers\PagoController::class)->middleware('permission:registrar_pago');

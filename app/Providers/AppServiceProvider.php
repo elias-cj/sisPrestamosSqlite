@@ -14,11 +14,8 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\ActivityLogListener::class);
     }
 }

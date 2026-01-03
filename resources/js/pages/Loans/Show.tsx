@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, Link } from '@inertiajs/react';
-import { Calendar, DollarSign, User, FileText, CheckCircle, AlertCircle, Clock, Printer, FileSpreadsheet } from 'lucide-react';
+import { Calendar, DollarSign, User, FileText, CheckCircle, AlertCircle, Clock, Printer, FileSpreadsheet, Banknote, X } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -15,23 +15,26 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Show({ loan }: { loan: any }) {
+export default function Show({ loan, company }: { loan: any, company?: any }) {
     // Payment Modal State
     const [selectedCuota, setSelectedCuota] = useState<any>(null);
     const { data, setData, post, processing, errors, reset } = useForm({
         cuota_id: '',
         monto_pagado: '',
         mora: '0',
+        metodo_pago: 'efectivo',
     });
 
     const openPaymentModal = (cuota: any) => {
+        const pagadoReal = cuota.pagos?.filter((p: any) => p.estado !== 'anulado').reduce((sum: number, p: any) => sum + parseFloat(p.monto_pagado), 0) || 0;
         setSelectedCuota(cuota);
         setData({
             cuota_id: cuota.id,
             monto_pagado: cuota.estado === 'parcial'
-                ? (cuota.monto - (cuota.pagos?.reduce((sum: number, p: any) => sum + parseFloat(p.monto_pagado), 0) || 0)).toFixed(2)
+                ? (cuota.monto - pagadoReal).toFixed(2)
                 : cuota.monto,
             mora: '0',
+            metodo_pago: 'efectivo',
         });
     };
 
@@ -52,14 +55,17 @@ export default function Show({ loan }: { loan: any }) {
     };
 
     const handleExcel = () => {
-        const headers = ['Numero', 'Fecha Vencimiento', 'Monto Cuota', 'Pagado', 'Estado', 'Fecha Pago'];
+        const headers = ['Número', 'Fecha Vencimiento', 'Monto Cuota', 'Mora', 'Pagado', 'Estado', 'Fecha Pago'];
         const rows = loan.cuotas.map((c: any) => {
-            const totalPagado = c.pagos?.reduce((acc: number, val: any) => acc + parseFloat(val.monto_pagado), 0) || 0;
-            const lastPaymentDate = c.pagos && c.pagos.length > 0 ? new Date(c.pagos[c.pagos.length - 1].created_at).toLocaleDateString() : '-';
+            const pagosValidos = c.pagos?.filter((p: any) => p.estado !== 'anulado') || [];
+            const totalPagado = pagosValidos.reduce((acc: number, val: any) => acc + parseFloat(val.monto_pagado), 0);
+            const totalMora = pagosValidos.reduce((acc: number, val: any) => acc + parseFloat(val.mora || 0), 0);
+            const lastPaymentDate = pagosValidos.length > 0 ? new Date(pagosValidos[pagosValidos.length - 1].created_at).toLocaleDateString() : '-';
             return [
                 c.numero_cuota,
                 new Date(c.fecha_programada).toLocaleDateString(),
                 parseFloat(c.monto).toFixed(2),
+                totalMora.toFixed(2),
                 totalPagado.toFixed(2),
                 c.estado.toUpperCase(),
                 lastPaymentDate
@@ -282,6 +288,7 @@ export default function Show({ loan }: { loan: any }) {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuota</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mora</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pagado</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase no-print">Acción</th>
@@ -289,8 +296,10 @@ export default function Show({ loan }: { loan: any }) {
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-zinc-700">
                                 {loan.cuotas.map((cuota: any) => {
-                                    const totalPagado = cuota.pagos?.reduce((acc: number, val: any) => acc + parseFloat(val.monto_pagado), 0) || 0;
                                     const isPaid = cuota.estado === 'pagado';
+                                    const pagosValidos = cuota.pagos?.filter((p: any) => p.estado !== 'anulado') || [];
+                                    const totalMora = pagosValidos.reduce((acc: number, val: any) => acc + parseFloat(val.mora || 0), 0);
+                                    const totalPagadoReal = pagosValidos.reduce((acc: number, val: any) => acc + parseFloat(val.monto_pagado), 0);
 
                                     return (
                                         <tr key={cuota.id} className={isPaid ? 'bg-green-50/30' : ''}>
@@ -303,8 +312,11 @@ export default function Show({ loan }: { loan: any }) {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
                                                 {loan.moneda.simbolo} {parseFloat(cuota.monto).toFixed(2)}
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">
+                                                {totalMora > 0 ? `${loan.moneda.simbolo} ${totalMora.toFixed(2)}` : '-'}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {totalPagado > 0 ? `${loan.moneda.simbolo} ${totalPagado.toFixed(2)}` : '-'}
+                                                {totalPagadoReal > 0 ? `${loan.moneda.simbolo} ${totalPagadoReal.toFixed(2)}` : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -339,7 +351,7 @@ export default function Show({ loan }: { loan: any }) {
                 {/* Payment Modal */}
                 {selectedCuota && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm no-print">
-                        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+                        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                                 Registrar Pago - Cuota #{selectedCuota.numero_cuota}
                             </h3>
@@ -355,9 +367,43 @@ export default function Show({ loan }: { loan: any }) {
                                         required
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Faltante: ${(parseFloat(selectedCuota.monto) - (selectedCuota.pagos?.reduce((s: number, p: any) => s + parseFloat(p.monto_pagado), 0) || 0)).toFixed(2)}
+                                        Faltante: ${(parseFloat(selectedCuota.monto) - (selectedCuota.pagos?.filter((p: any) => p.estado !== 'anulado').reduce((s: number, p: any) => s + parseFloat(p.monto_pagado), 0) || 0)).toFixed(2)}
                                     </p>
                                 </div>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2 mt-2">Método de Pago</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['efectivo', 'qr', 'transferencia', 'tarjeta'].map((method) => (
+                                            <button
+                                                key={method}
+                                                type="button"
+                                                onClick={() => setData('metodo_pago', method)}
+                                                className={`py-2 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-wider transition-all ${data.metodo_pago === method
+                                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10'
+                                                    : 'border-gray-100 dark:border-zinc-700 text-gray-400 hover:border-gray-200'
+                                                    }`}
+                                            >
+                                                {method}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {errors.metodo_pago && <p className="text-red-500 text-[10px] mt-1">{errors.metodo_pago}</p>}
+                                </div>
+
+                                {data.metodo_pago === 'qr' && company?.qr_pago_url && (
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 flex flex-col items-center animate-in zoom-in-95 duration-200">
+                                        <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-3">Escanee para pagar</p>
+                                        <img
+                                            src={company.qr_pago_url}
+                                            alt="QR de Pago"
+                                            className="w-48 h-48 object-contain bg-white p-2 rounded-xl shadow-md"
+                                        />
+                                        {company.qr_vencimiento && (
+                                            <p className="text-[10px] text-amber-600 mt-2">Vence el: {new Date(company.qr_vencimiento).toLocaleDateString()}</p>
+                                        )}
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mora / Recargo (Opcional)</label>
                                     <input
@@ -367,7 +413,20 @@ export default function Show({ loan }: { loan: any }) {
                                         value={data.mora}
                                         onChange={e => setData('mora', e.target.value)}
                                     />
+                                    {errors.mora && <p className="text-red-500 text-xs mt-1">{errors.mora}</p>}
                                 </div>
+
+                                {Object.keys(errors).length > 0 && (
+                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-in fade-in duration-200">
+                                        <div className="flex flex-col gap-1">
+                                            {Object.keys(errors).map(key => (
+                                                <p key={key} className="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3" /> {errors[key as keyof typeof errors]}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"

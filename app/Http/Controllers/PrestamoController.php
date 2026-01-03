@@ -62,8 +62,15 @@ class PrestamoController extends Controller
     public function show(Prestamo $loan)
     {
         $loan->load(['cliente', 'socios', 'cuotas.pagos', 'moneda']);
+        
+        $company = \App\Models\Empresa::first();
+        if ($company && $company->qr_pago) {
+            $company->qr_pago_url = \Illuminate\Support\Facades\Storage::url($company->qr_pago);
+        }
+
         return Inertia::render('Loans/Show', [
-            'loan' => $loan
+            'loan' => $loan,
+            'company' => $company
         ]);
     }
 

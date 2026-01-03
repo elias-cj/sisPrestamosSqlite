@@ -16,10 +16,14 @@ class Pago extends Model
     protected $fillable = [
         'cuota_id',
         'monto_pagado',
+        'metodo_pago',
+        'referencia_pago',
         'fecha_pago',
         'mora',
         'usuario_id',
         'caja_id',
+        'estado',
+        'motivo_anulacion',
     ];
 
     protected $casts = [

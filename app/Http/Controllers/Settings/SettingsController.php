@@ -23,6 +23,10 @@ class SettingsController extends Controller
             ]);
         }
 
+        if ($company && $company->qr_pago) {
+            $company->qr_pago_url = \Illuminate\Support\Facades\Storage::url($company->qr_pago);
+        }
+
         return Inertia::render('settings/Index', [
             'company' => $company,
             'success' => session('success'),

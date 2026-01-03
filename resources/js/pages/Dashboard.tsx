@@ -52,6 +52,7 @@ export default function Dashboard({
     loansStatus,
     actividadReciente,
     alerts,
+    qrAlert,
     caja,
     filters
 }: any) {
@@ -227,7 +228,12 @@ export default function Dashboard({
                                         <div className="h-5 w-px bg-white/10"></div>
                                         <div>
                                             <p className="text-[8px] font-bold text-white/50 uppercase">Ingresos</p>
-                                            <p className="text-xs font-black text-emerald-400">+{formatCurrency(caja.ingresos_hoy)}</p>
+                                            <p className="text-xs font-black text-emerald-400">+{formatCurrency(caja.ingresos_hoy - caja.mora_hoy)}</p>
+                                        </div>
+                                        <div className="h-5 w-px bg-white/10"></div>
+                                        <div>
+                                            <p className="text-[8px] font-bold text-white/50 uppercase">Mora</p>
+                                            <p className="text-xs font-black text-amber-400">+{formatCurrency(caja.mora_hoy)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -247,6 +253,25 @@ export default function Dashboard({
                         )}
                     </div>
                 </div>
+
+                {/* --- ALERTA DE QR VENCIMIENTO --- */}
+                {qrAlert && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
+                        <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-amber-500/30">
+                            <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="text-sm font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest">Alerta de Seguridad: QR de Pagos</h4>
+                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mt-0.5">{qrAlert.mensaje}</p>
+                        </div>
+                        <button
+                            onClick={() => router.visit('/settings')}
+                            className="px-4 py-2 bg-amber-900 dark:bg-amber-500 text-white dark:text-amber-950 text-[10px] font-black uppercase rounded-lg shadow-sm active:scale-95 transition-all"
+                        >
+                            Actualizar QR
+                        </button>
+                    </div>
+                )}
 
                 {/* --- VENCIMIENTOS HOY + ÚLTIMOS PAGOS + MORA --- */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

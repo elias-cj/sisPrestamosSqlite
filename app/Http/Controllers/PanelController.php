@@ -62,7 +62,8 @@ class PanelController extends Controller
         $capitalMesPasado = Prestamo::whereBetween('created_at', [$inicioMesPasado, $finMesPasado])->sum('monto');
         $procentajeCrecimiento = $capitalMesPasado > 0 ? (($capitalPrestado - $capitalMesPasado) / $capitalMesPasado) * 100 : 0;
 
-        $totalPagos = Pago::whereBetween('created_at', [$fechaInicio, $fechaFin])
+        $totalPagos = Pago::where('estado', '!=', 'anulado')
+            ->whereBetween('created_at', [$fechaInicio, $fechaFin])
             ->with('cuota.prestamo')
             ->get();
 
@@ -90,7 +91,7 @@ class PanelController extends Controller
             $e = $esPeriodoLargo ? $iter->copy()->endOfMonth() : $iter->copy()->endOfDay();
             
             $montoPrestado = Prestamo::whereBetween('created_at', [$s, $e])->sum('monto');
-            $montoCobrado = Pago::whereBetween('created_at', [$s, $e])->sum('monto_pagado');
+            $montoCobrado = Pago::where('estado', '!=', 'anulado')->whereBetween('created_at', [$s, $e])->sum('monto_pagado');
             
             $evolucionData[] = [
                 'name' => $iter->format($formatoDisplay),
@@ -128,7 +129,8 @@ class PanelController extends Controller
             ['name' => 'Cancelados', 'value' => Prestamo::where('estado', 'cancelado')->count()],
         ];
 
-        $actividadReciente = Pago::with(['cuota.prestamo.cliente'])
+        $actividadReciente = Pago::where('estado', '!=', 'anulado')
+            ->with(['cuota.prestamo.cliente'])
             ->latest()
             ->take(5)
             ->get()
@@ -145,6 +147,22 @@ class PanelController extends Controller
             ->where('estado', 'abierta')
             ->first();
 
+        // Alerta de QR vencimiento
+        $empresa = \App\Models\Empresa::first();
+        $qrAlert = null;
+        if ($empresa && $empresa->qr_vencimiento) {
+            $diasParaVencer = now()->diffInDays(Carbon::parse($empresa->qr_vencimiento), false);
+            if ($diasParaVencer <= 10) {
+                $qrAlert = [
+                    'tipo' => 'qr_vencimiento',
+                    'mensaje' => $diasParaVencer < 0 
+                        ? 'El QR de pagos ha vencido.' 
+                        : "El QR de pagos vencerá en {$diasParaVencer} días.",
+                    'dias' => $diasParaVencer
+                ];
+            }
+        }
+
         return Inertia::render('Dashboard', [
             'stats' => [
                 'capital_prestado' => (float)$capitalPrestado,
@@ -158,6 +176,7 @@ class PanelController extends Controller
             'rankingMora' => $rankingMora,
             'loansStatus' => $estadoPrestamos,
             'actividadReciente' => $actividadReciente,
+            'qrAlert' => $qrAlert,
             'alerts' => Cuota::with('prestamo.cliente')->whereDate('fecha_programada', now()->toDateString())->where('estado', '!=', 'pagado')->take(5)->get()->map(fn($c) => ['cliente' => $c->prestamo->cliente->nombre, 'monto' => $c->monto]),
             'filters' => [
                 'period' => $period,
@@ -169,6 +188,7 @@ class PanelController extends Controller
                 'monto_apertura' => (float)$caja->monto_apertura,
                 'saldo_actual' => (float)($caja->monto_apertura + $caja->total_ingresos - $caja->total_egresos), 
                 'ingresos_hoy' => (float)$caja->total_ingresos,
+                'mora_hoy' => (float)Pago::where('caja_id', $caja->id)->where('estado', '!=', 'anulado')->sum('mora')
             ] : null,
         ]);
     }

@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, usePage, Link } from '@inertiajs/react';
-import { Building2, Palette, Save, Moon, Sun, Monitor, Upload, Lock, Database, Download, History } from 'lucide-react';
+import { Building2, Palette, Save, Moon, Sun, Monitor, Upload, Lock, Database, Download, History, Folder } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Transition } from '@headlessui/react';
 import { router } from '@inertiajs/react';
@@ -160,6 +160,8 @@ export default function SettingsIndex({ company }: any) {
         telefono: string;
         email: string;
         logo: File | null;
+        qr_pago: File | null;
+        qr_vencimiento: string;
         _method: string;
     }
 
@@ -171,6 +173,8 @@ export default function SettingsIndex({ company }: any) {
         telefono: company?.telefono || '',
         email: company?.email || '',
         logo: null as File | null,
+        qr_pago: null as File | null,
+        qr_vencimiento: company?.qr_vencimiento || '',
         _method: 'PATCH',
     });
 
@@ -365,6 +369,64 @@ export default function SettingsIndex({ company }: any) {
                                             </div>
                                             {companyErrors.logo && <p className="text-red-500 text-xs mt-1">{companyErrors.logo}</p>}
                                         </div>
+
+                                        <div className="space-y-1 md:col-span-2 pt-4 border-t border-gray-100 dark:border-zinc-700 mt-4">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Folder className="w-5 h-5 text-amber-500" />
+                                                <h3 className="font-bold text-gray-900 dark:text-white">Código QR de Pagos</h3>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                <div className="space-y-1">
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Imagen del QR</label>
+                                                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-zinc-700 border-dashed rounded-lg bg-gray-50 dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer relative">
+                                                        <div className="space-y-1 text-center">
+                                                            {data.qr_pago ? (
+                                                                <span className="text-amber-600 font-medium text-xs">QR seleccionado: {data.qr_pago.name}</span>
+                                                            ) : (
+                                                                <>
+                                                                    <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                                                                    <span className="text-xs text-gray-500">Subir QR</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                            onChange={e => setData('qr_pago', e.target.files ? e.target.files[0] : null)}
+                                                        />
+                                                    </div>
+                                                    {companyErrors.qr_pago && <p className="text-red-500 text-xs mt-1">{companyErrors.qr_pago}</p>}
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Vencimiento</label>
+                                                    <input
+                                                        type="date"
+                                                        value={data.qr_vencimiento}
+                                                        onChange={e => setData('qr_vencimiento', e.target.value)}
+                                                        className="w-full rounded-lg border-gray-300 dark:border-zinc-700 dark:bg-zinc-900 focus:ring-amber-500 focus:border-amber-500"
+                                                    />
+                                                    <p className="text-[10px] text-gray-500 italic mt-1">Te avisaremos antes de que este QR caduque.</p>
+                                                    {companyErrors.qr_vencimiento && <p className="text-red-500 text-xs">{companyErrors.qr_vencimiento}</p>}
+                                                </div>
+                                            </div>
+
+                                            {company?.qr_pago && (
+                                                <div className="mt-4 flex items-center gap-4 p-3 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-700">
+                                                    <img
+                                                        src={company.qr_pago_url}
+                                                        alt="QR Actual"
+                                                        className="w-16 h-16 object-contain rounded-lg border border-gray-200"
+                                                    />
+                                                    <div>
+                                                        <p className="text-xs font-bold text-gray-900 dark:text-white">QR Actual</p>
+                                                        <p className="text-[10px] text-gray-500">Cargado y listo para cobros.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="pt-4 flex items-center justify-end gap-3">
@@ -504,6 +566,6 @@ export default function SettingsIndex({ company }: any) {
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </AppLayout >
     );
 }

@@ -32,8 +32,14 @@ class PagoController extends Controller
             }])
             ->get();
 
+        $company = \App\Models\Empresa::first();
+        if ($company && $company->qr_pago) {
+            $company->qr_pago_url = \Illuminate\Support\Facades\Storage::url($company->qr_pago);
+        }
+
         return Inertia::render('Payments/Create', [
-            'clients' => $clients
+            'clients' => $clients,
+            'company' => $company
         ]);
     }
 
@@ -43,6 +49,7 @@ class PagoController extends Controller
             'cuota_id' => 'required|exists:cuotas,id',
             'monto_pagado' => 'required|numeric|min:0.01',
             'mora' => 'nullable|numeric|min:0',
+            'metodo_pago' => 'required|string|in:efectivo,qr,transferencia,tarjeta',
         ]);
 
         $caja = Caja::where('usuario_id', Auth::id())->where('estado', 'abierta')->first();
@@ -95,9 +102,31 @@ class PagoController extends Controller
                 'monto_prestamo' => $pago->cuota->prestamo->monto,
                 'interes' => $pago->cuota->prestamo->interes,
                 'usuario_nombre' => $pago->usuario->name,
+                'metodo_pago' => $pago->metodo_pago,
             ]);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Error al procesar el pago: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroy(Request $request, Pago $payment)
+    {
+        // Solo administrador puede anular
+        if (!Auth::user()->roles()->where('nombre', 'Administrador')->exists()) {
+            return back()->withErrors(['error' => 'Solo un administrador puede anular pagos.']);
+        }
+
+        $request->validate([
+            'motivo_anulacion' => 'required|string|min:20',
+        ]);
+
+        try {
+            $paymentService = app(\App\Services\PaymentService::class);
+            $paymentService->annulPayment($payment, $request->motivo_anulacion);
+
+            return back()->with('success', 'El pago ha sido anulado correctamente.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Error al anular el pago: ' . $e->getMessage()]);
         }
     }
 }
