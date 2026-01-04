@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
-use App\Models\User;
+use App\Models\Usuario;
 use App\Models\Socio;
 use App\Models\Cliente;
 use App\Models\Moneda;
@@ -32,7 +32,7 @@ class FinancialCalculationTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = Usuario::factory()->create();
         
         // El dueño del sistema suele ser el Socio ID 1
         $this->owner = Socio::create([

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\User;
+use App\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
@@ -23,7 +23,7 @@ class TwoFactorAuthenticationTest extends TestCase
             'confirmPassword' => true,
         ]);
 
-        $user = User::factory()->withoutTwoFactor()->create();
+        $user = Usuario::factory()->withoutTwoFactor()->create();
 
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
@@ -40,7 +40,7 @@ class TwoFactorAuthenticationTest extends TestCase
             $this->markTestSkipped('Two-factor authentication is not enabled.');
         }
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         Features::twoFactorAuthentication([
             'confirm' => true,
@@ -59,7 +59,7 @@ class TwoFactorAuthenticationTest extends TestCase
             $this->markTestSkipped('Two-factor authentication is not enabled.');
         }
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         Features::twoFactorAuthentication([
             'confirm' => true,
@@ -82,7 +82,7 @@ class TwoFactorAuthenticationTest extends TestCase
 
         config(['fortify.features' => []]);
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])

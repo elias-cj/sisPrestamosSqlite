@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
+use App\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
@@ -34,7 +34,7 @@ class TwoFactorChallengeTest extends TestCase
             'confirmPassword' => true,
         ]);
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         $user->forceFill([
             'two_factor_secret' => encrypt('test-secret'),

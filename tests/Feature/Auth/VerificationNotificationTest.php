@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
+use App\Models\Usuario;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -16,7 +16,7 @@ class VerificationNotificationTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create([
+        $user = Usuario::factory()->create([
             'email_verified_at' => null,
         ]);
 
@@ -31,7 +31,7 @@ class VerificationNotificationTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create([
+        $user = Usuario::factory()->create([
             'email_verified_at' => now(),
         ]);
 
