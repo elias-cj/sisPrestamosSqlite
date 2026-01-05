@@ -6,8 +6,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { regenerateRecoveryCodes } from '@/routes/two-factor';
-import { Form } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AlertError from './alert-error';
@@ -80,22 +79,23 @@ export default function TwoFactorRecoveryCodes({
                     </Button>
 
                     {canRegenerateCodes && (
-                        <Form
-                            {...regenerateRecoveryCodes.form()}
-                            options={{ preserveScroll: true }}
-                            onSuccess={fetchRecoveryCodes}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                router.post(route('two-factor.recovery-codes'), {}, {
+                                    preserveScroll: true,
+                                    onSuccess: () => fetchRecoveryCodes(),
+                                });
+                            }}
                         >
-                            {({ processing }) => (
-                                <Button
-                                    variant="secondary"
-                                    type="submit"
-                                    disabled={processing}
-                                    aria-describedby="regenerate-warning"
-                                >
-                                    <RefreshCw /> Regenerate Codes
-                                </Button>
-                            )}
-                        </Form>
+                            <Button
+                                variant="secondary"
+                                type="submit"
+                                aria-describedby="regenerate-warning"
+                            >
+                                <RefreshCw /> Regenerate Codes
+                            </Button>
+                        </form>
                     )}
                 </div>
                 <div

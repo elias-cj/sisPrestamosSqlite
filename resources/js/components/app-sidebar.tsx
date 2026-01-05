@@ -10,7 +10,6 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
@@ -122,7 +121,7 @@ export function AppSidebar() {
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader className="transition-all duration-300">
                 <Link
-                    href={dashboard()}
+                    href={route('dashboard')}
                     prefetch
                     className="flex items-center justify-center py-2 transition-all hover:opacity-80"
                 >
