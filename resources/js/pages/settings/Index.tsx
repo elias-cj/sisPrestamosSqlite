@@ -203,7 +203,7 @@ export default function SettingsIndex({ company }: any) {
 
     const submitPassword = (e: React.FormEvent) => {
         e.preventDefault();
-        putPassword(route('user-password.update'), {
+        putPassword(route('profile.password.update'), {
             errorBag: 'updatePassword',
             preserveScroll: true,
             onSuccess: () => resetPassword(),

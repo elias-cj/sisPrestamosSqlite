@@ -10,7 +10,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings', [\App\Http\Controllers\Settings\SettingsController::class, 'index'])->name('settings.index');
 
     Route::patch('settings/company', [\App\Http\Controllers\Settings\CompanyController::class, 'update'])->name('company.update'); 
-    Route::put('settings/password', [PasswordController::class, 'update'])->name('user-password.update');
+    Route::put('settings/password', [PasswordController::class, 'update'])->name('profile.password.update');
     
     // Keep profile routes if needed manually, but hiding them from sidebar
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
