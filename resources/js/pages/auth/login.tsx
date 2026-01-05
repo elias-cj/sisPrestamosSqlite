@@ -5,11 +5,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
-import { Form, Head } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Building2, Wallet } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
 interface LoginProps {
     status?: string;
@@ -22,6 +20,19 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: LoginProps) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        email: '',
+        password: '',
+        remember: false,
+    });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        post(route('login'), {
+            onFinish: () => reset('password'),
+        });
+    };
     return (
         <div className="flex min-h-screen w-full bg-gray-50 dark:bg-zinc-950">
             <Head title="Acceder al Sistema" />
@@ -71,89 +82,88 @@ export default function Login({
                     </div>
 
                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800">
-                        <Form
-                            {...store.form()}
-                            resetOnSuccess={['password']}
-                            className="flex flex-col gap-6"
-                        >
-                            {({ processing, errors }) => (
-                                <>
-                                    <div className="grid gap-6">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Correo Electrónico</Label>
-                                            <Input
-                                                id="email"
-                                                type="email"
-                                                name="email"
-                                                required
-                                                autoFocus
-                                                tabIndex={1}
-                                                autoComplete="email"
-                                                placeholder="admin@empresa.com"
-                                                className="bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 h-11"
-                                            />
-                                            <InputError message={errors.email} />
-                                        </div>
+                        {/* Wayfinder code removed, implementing standard Inertia useForm */}
+                        <form onSubmit={submit} className="flex flex-col gap-6">
+                            <div className="grid gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Correo Electrónico</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        required
+                                        autoFocus
+                                        tabIndex={1}
+                                        autoComplete="email"
+                                        placeholder="admin@empresa.com"
+                                        className="bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 h-11"
+                                        value={data.email}
+                                        onChange={(e) => setData('email', e.target.value)}
+                                    />
+                                    <InputError message={errors.email} />
+                                </div>
 
-                                        <div className="grid gap-2">
-                                            <div className="flex items-center">
-                                                <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Contraseña</Label>
-                                                {canResetPassword && (
-                                                    <TextLink
-                                                        href={request()}
-                                                        className="ml-auto text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                                                        tabIndex={5}
-                                                    >
-                                                        ¿Olvidaste tu contraseña?
-                                                    </TextLink>
-                                                )}
-                                            </div>
-                                            <Input
-                                                id="password"
-                                                type="password"
-                                                name="password"
-                                                required
-                                                tabIndex={2}
-                                                autoComplete="current-password"
-                                                placeholder="••••••••"
-                                                className="bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 h-11"
-                                            />
-                                            <InputError message={errors.password} />
-                                        </div>
-
-                                        <div className="flex items-center space-x-3">
-                                            <Checkbox
-                                                id="remember"
-                                                name="remember"
-                                                tabIndex={3}
-                                                className="border-gray-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500"
-                                            />
-                                            <Label htmlFor="remember" className="font-normal text-gray-600 dark:text-gray-400">Recordar sesión</Label>
-                                        </div>
-
-                                        <Button
-                                            type="submit"
-                                            className="mt-2 w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold tracking-wide transition-all shadow-lg shadow-indigo-500/30"
-                                            tabIndex={4}
-                                            disabled={processing}
-                                            data-test="login-button"
-                                        >
-                                            {processing && <Spinner className="mr-2" />}
-                                            Iniciar Sesión
-                                        </Button>
-                                    </div>
-
-                                    {canRegister && (
-                                        <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
-                                            ¿No tienes una cuenta?{' '}
-                                            <TextLink href={register()} tabIndex={5} className="font-bold text-indigo-600 hover:text-indigo-500">
-                                                Regístrate aquí
+                                <div className="grid gap-2">
+                                    <div className="flex items-center">
+                                        <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Contraseña</Label>
+                                        {canResetPassword && (
+                                            <TextLink
+                                                href={route('password.request')}
+                                                className="ml-auto text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                                                tabIndex={5}
+                                            >
+                                                ¿Olvidaste tu contraseña?
                                             </TextLink>
-                                        </div>
-                                    )}
-                                </>
+                                        )}
+                                    </div>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="current-password"
+                                        placeholder="••••••••"
+                                        className="bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 h-11"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                    />
+                                    <InputError message={errors.password} />
+                                </div>
+
+                                <div className="flex items-center space-x-3">
+                                    <Checkbox
+                                        id="remember"
+                                        name="remember"
+                                        tabIndex={3}
+                                        className="border-gray-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500"
+                                        checked={data.remember}
+                                        onCheckedChange={(checked) => setData('remember', !!checked)}
+                                    />
+                                    <Label htmlFor="remember" className="font-normal text-gray-600 dark:text-gray-400">Recordar sesión</Label>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="mt-2 w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold tracking-wide transition-all shadow-lg shadow-indigo-500/30"
+                                    tabIndex={4}
+                                    disabled={processing}
+                                    data-test="login-button"
+                                >
+                                    {processing && <Spinner className="mr-2" />}
+                                    Iniciar Sesión
+                                </Button>
+                            </div>
+
+                            {canRegister && (
+                                <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+                                    ¿No tienes una cuenta?{' '}
+                                    <TextLink href={route('register')} tabIndex={5} className="font-bold text-indigo-600 hover:text-indigo-500">
+                                        Regístrate aquí
+                                    </TextLink>
+                                </div>
                             )}
-                        </Form>
+                        </form>
                     </div>
 
                     <p className="text-center text-xs text-gray-400 mt-8">
