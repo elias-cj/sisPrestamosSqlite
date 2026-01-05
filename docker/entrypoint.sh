@@ -18,10 +18,12 @@ chown -R www-data:www-data /var/www/storage /var/www/database
 php artisan storage:link || true
 
 # Sync assets to shared volume
-echo "Syncing assets to volume..."
-if [ -d /var/www/public/build_backup ]; then
-    mkdir -p /var/www/public/build
-    cp -rf /var/www/public/build_backup/. /var/www/public/build/
+echo "Syncing public assets to volume..."
+if [ -d /var/www/public_backup ]; then
+    mkdir -p /var/www/public
+    cp -rf /var/www/public_backup/. /var/www/public/
+    chown -R www-data:www-data /var/www/public
+    chmod -R 755 /var/www/public
 fi
 
 # Check if SQLite database exists, if not create it
