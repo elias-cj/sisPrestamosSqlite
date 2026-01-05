@@ -48,6 +48,7 @@ COPY . .
 
 # Copy built frontend assets from Stage 1
 COPY --from=frontend /app/public/build /var/www/public/build
+RUN cp -r /var/www/public/build /var/www/public/build_backup
 
 # Setup database directory structure (ensure it exists)
 RUN mkdir -p /var/www/database

@@ -17,6 +17,13 @@ chown -R www-data:www-data /var/www/storage /var/www/database
 # Create symbolic link for storage
 php artisan storage:link || true
 
+# Sync assets to shared volume
+echo "Syncing assets to volume..."
+if [ -d /var/www/public/build_backup ]; then
+    mkdir -p /var/www/public/build
+    cp -rf /var/www/public/build_backup/. /var/www/public/build/
+fi
+
 # Check if SQLite database exists, if not create it
 if [ ! -f /var/www/database/database.sqlite ]; then
     echo "Creating database.sqlite..."
