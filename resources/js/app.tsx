@@ -34,7 +34,6 @@ createInertiaApp({
 initializeTheme();
 
 import { route } from 'ziggy-js';
-import { Ziggy } from './ziggy';
 
-window.route = (name: any, params: any, absolute: any, config: any) => route(name, params, absolute, config || Ziggy);
+window.route = (name: any, params: any, absolute: any, config: any) => route(name, params, absolute, config || (window as any).Ziggy);
 
