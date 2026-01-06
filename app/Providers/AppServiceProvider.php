@@ -17,5 +17,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\ActivityLogListener::class);
+        
+        // Forzar HTTPS en producción (necesario para Tailscale Funnel)
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }
